@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_building, icon_plus, icon_alert_triangle %}
+
+{% block title %}Your Sites{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_building("icon icon--lg") }} Your Sites</h1>
+      <p class="page-header__meta">Manage site details and assign guards to rosters.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('sites.new_site') }}">{{ icon_plus() }} Add site</a>
+  </div>
+
+  {% if sites %}
+    <div class="grid-2">
+      {% for site in sites %}
+        <a class="card" href="{{ url_for('sites.detail', site_id=site.id) }}" style="text-decoration:none; color:inherit;">
+          <div class="card__header">
+            <h2 style="margin:0;">{{ site.name }}</h2>
+            {% if not site.is_active %}<span class="badge badge--neutral">Inactive</span>{% endif %}
+          </div>
+          <p><strong>Client:</strong> {{ site.client_name }}</p>
+          {% if site.site_manager %}<p><strong>Site manager:</strong> {{ site.site_manager }}</p>{% endif %}
+          {% if site.address %}<p class="page-header__meta">{{ site.address }}</p>{% endif %}
+          {% if site.uninvoiced_shifts %}
+            <span class="badge badge--expiring">{{ icon_alert_triangle("icon icon--sm") }} {{ site.uninvoiced_shifts|length }} shift(s) ready to invoice</span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card empty-state">
+      {{ icon_building() }}
+      <p>No sites yet. Add your first site to start building rosters.</p>
+      <a class="btn btn-primary" href="{{ url_for('sites.new_site') }}">{{ icon_plus() }} Add site</a>
+    </div>
+  {% endif %}
+{% endblock %}

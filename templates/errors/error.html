@@ -1,0 +1,15 @@
+{% extends "base.html" if current_user.is_authenticated else "auth/_auth_base.html" %}
+{% from "_icons.html" import icon_alert_octagon %}
+
+{% block title %}{{ code }}{% endblock %}
+
+{% block content %}
+  <div class="empty-state card" style="max-width: 480px; margin: var(--space-7) auto;">
+    {{ icon_alert_octagon("icon icon--lg") }}
+    <h1>{{ code }}</h1>
+    <p>{{ message }}</p>
+    {% if current_user.is_authenticated %}
+      <a class="btn btn-primary" href="{{ url_for('frontline.portal') if current_user.is_frontline else url_for('dashboard') }}">{{ t('common.back') }}</a>
+    {% endif %}
+  </div>
+{% endblock %}

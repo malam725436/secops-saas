@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_globe, icon_clock, icon_user_check, icon_key, icon_package, icon_alert_octagon, icon_clipboard_check, icon_building %}
+
+{% block title %}{{ t('frontline.title') }}{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_building("icon icon--lg") }} {{ t('frontline.title') }}</h1>
+      <p class="page-header__meta">{{ t('frontline.welcome') }}, {{ current_user.name }} &middot; {{ t('frontline.role') }}: {{ current_user.role_label }}</p>
+    </div>
+  </div>
+
+  {# --- Prominent language selector, always at the top of the frontline view --- #}
+  <form method="post" action="{{ url_for('auth.set_language', lang_code='__lang__') }}" id="language-form" class="card language-switcher">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="language-select">{{ icon_globe("icon icon--sm") }} {{ t('frontline.language') }}</label>
+    <select id="language-select" name="lang_code" onchange="this.form.action = this.form.action.replace('__lang__', this.value); this.form.submit();" aria-label="{{ t('frontline.language') }}">
+      {% for code, label in supported_languages.items() %}
+        <option value="{{ code }}" {% if code == current_language %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  {% if sites|length > 1 %}
+    <form method="get" class="card language-switcher" style="margin-top: var(--space-3);">
+      <label for="site-select">{{ icon_building("icon icon--sm") }} Site</label>
+      <select id="site-select" name="site_id" onchange="this.form.submit()">
+        {% for s in sites %}
+          <option value="{{ s.id }}" {% if site and s.id == site.id %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  {% endif %}
+
+  {# --- Global attendance: clock in / out --- #}
+  <section class="card" aria-labelledby="attendance-heading" style="margin-top: var(--space-4);">
+    <h2 id="attendance-heading">{{ icon_clock("icon icon--sm") }} {{ t('frontline.attendance.title') }}</h2>
+    {% if open_attendance %}
+      <p>{{ t('frontline.attendance.status_in') }} <strong>{{ open_attendance.clock_in.strftime('%H:%M on %d %b %Y') }}</strong></p>
+      <form method="post" action="{{ url_for('frontline.clock_out') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="site_id" value="{{ site.id if site else '' }}">
+        <button type="submit" class="btn btn-danger btn-tactile">{{ t('frontline.attendance.clock_out') }}</button>
+      </form>
+    {% else %}
+      <p>{{ t('frontline.attendance.status_out') }}</p>
+      <form method="post" action="{{ url_for('frontline.clock_in') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="site_id" value="{{ site.id if site else '' }}">
+        <button type="submit" class="btn btn-primary btn-tactile">{{ t('frontline.attendance.clock_in') }}</button>
+      </form>
+    {% endif %}
+  </section>
+
+  {# --- Receptionist suite --- #}
+  {% if visitors is defined %}
+    <div class="grid-2" style="margin-top: var(--space-4);">
+      <section class="card" aria-labelledby="visitor-heading">
+        <h2 id="visitor-heading">{{ icon_user_check("icon icon--sm") }} {{ t('frontline.visitor.title') }}</h2>
+        <form method="post" action="{{ url_for('frontline.visitor_sign_in') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="site_id" value="{{ site.id }}">
+          <div class="field">
+            <label for="visitor_name">{{ t('frontline.visitor.name') }}<span class="required-indicator">*</span></label>
+            <input type="text" id="visitor_name" name="visitor_name" required>
+          </div>
+          <div class="field">
+            <label for="host_name">{{ t('frontline.visitor.host') }}</label>
+            <input type="text" id="host_name" name="host_name">
+          </div>
+          <div class="field">
+            <label for="company">{{ t('frontline.visitor.company') }}</label>
+            <input type="text" id="company" name="company">
+          </div>
+          <div class="field">
+            <label for="purpose">{{ t('frontline.visitor.purpose') }}</label>
+            <input type="text" id="purpose" name="purpose">
+          </div>
+          <button type="submit" class="btn btn-primary btn-tactile">{{ t('frontline.visitor.sign_in') }}</button>
+        </form>
+
+        {% if visitors %}
+          <div class="table-wrapper" style="margin-top: var(--space-4);">
+            <table>
+              <caption class="visually-hidden">{{ t('frontline.visitor.title') }}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{{ t('frontline.visitor.name') }}</th>
+                  <th scope="col">{{ t('frontline.visitor.signed_in_at') }}</th>
+                  <th scope="col">{{ t('frontline.visitor.signed_out_at') }}</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for v in visitors %}
+                  <tr>
+                    <td>{{ v.visitor_name }}{% if v.company %} <span class="page-header__meta">({{ v.company }})</span>{% endif %}</td>
+                    <td>{{ v.signed_in_at.strftime('%H:%M %d %b') }}</td>
+                    <td>
+                      {% if v.signed_out_at %}
+                        {{ v.signed_out_at.strftime('%H:%M %d %b') }}
+                      {% else %}
+                        <span class="badge badge--expiring">{{ t('frontline.visitor.on_site') }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if not v.signed_out_at %}
+                        <form method="post" action="{{ url_for('frontline.visitor_sign_out', entry_id=v.id) }}">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <button type="submit" class="btn btn-secondary btn-sm">{{ t('frontline.visitor.sign_out') }}</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="card" aria-labelledby="keys-heading">
+        <h2 id="keys-heading">{{ icon_key("icon icon--sm") }} {{ t('frontline.keys.title') }}</h2>
+        <form method="post" action="{{ url_for('frontline.key_issue') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="site_id" value="{{ site.id }}">
+          <div class="field">
+            <label for="key_label">{{ t('frontline.keys.label') }}<span class="required-indicator">*</span></label>
+            <input type="text" id="key_label" name="key_label" required>
+          </div>
+          <div class="field">
+            <label for="issued_to">{{ t('frontline.keys.issued_to') }}<span class="required-indicator">*</span></label>
+            <input type="text" id="issued_to" name="issued_to" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-tactile">{{ t('frontline.keys.issue') }}</button>
+        </form>
+
+        {% if keys %}
+          <div class="table-wrapper" style="margin-top: var(--space-4);">
+            <table>
+              <caption class="visually-hidden">{{ t('frontline.keys.title') }}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{{ t('frontline.keys.label') }}</th>
+                  <th scope="col">{{ t('frontline.keys.issued_to') }}</th>
+                  <th scope="col">{{ t('frontline.keys.returned_at') }}</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for k in keys %}
+                  <tr>
+                    <td>{{ k.key_label }}</td>
+                    <td>{{ k.issued_to }}</td>
+                    <td>
+                      {% if k.returned_at %}
+                        {{ k.returned_at.strftime('%H:%M %d %b') }}
+                      {% else %}
+                        <span class="badge badge--expiring">{{ t('frontline.keys.outstanding') }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if not k.returned_at %}
+                        <form method="post" action="{{ url_for('frontline.key_return', entry_id=k.id) }}">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <button type="submit" class="btn btn-secondary btn-sm">{{ t('frontline.keys.return') }}</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="parcels-heading" style="margin-top: var(--space-4);">
+      <h2 id="parcels-heading">{{ icon_package("icon icon--sm") }} {{ t('frontline.parcels.title') }}</h2>
+      <form method="post" action="{{ url_for('frontline.parcel_log') }}" class="form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="site_id" value="{{ site.id }}">
+        <div class="field">
+          <label for="courier">{{ t('frontline.parcels.courier') }}</label>
+          <input type="text" id="courier" name="courier">
+        </div>
+        <div class="field">
+          <label for="recipient">{{ t('frontline.parcels.recipient') }}<span class="required-indicator">*</span></label>
+          <input type="text" id="recipient" name="recipient" required>
+        </div>
+        <div class="field">
+          <label for="description">{{ t('frontline.parcels.description') }}</label>
+          <input type="text" id="description" name="description">
+        </div>
+        <div class="field" style="align-self: end;">
+          <button type="submit" class="btn btn-primary btn-tactile">{{ t('frontline.parcels.log') }}</button>
+        </div>
+      </form>
+
+      {% if parcels %}
+        <div class="table-wrapper" style="margin-top: var(--space-4);">
+          <table>
+            <caption class="visually-hidden">{{ t('frontline.parcels.title') }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{{ t('frontline.parcels.recipient') }}</th>
+                <th scope="col">{{ t('frontline.parcels.courier') }}</th>
+                <th scope="col">{{ t('frontline.parcels.received_at') }}</th>
+                <th scope="col">{{ t('frontline.parcels.collected_at') }}</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in parcels %}
+                <tr>
+                  <td>{{ p.recipient }}</td>
+                  <td>{{ p.courier or '—' }}</td>
+                  <td>{{ p.received_at.strftime('%H:%M %d %b') }}</td>
+                  <td>
+                    {% if p.collected_at %}
+                      {{ p.collected_at.strftime('%H:%M %d %b') }}
+                    {% else %}
+                      <span class="badge badge--expiring">{{ t('frontline.parcels.awaiting') }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if not p.collected_at %}
+                      <form method="post" action="{{ url_for('frontline.parcel_collect', entry_id=p.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-secondary btn-sm">{{ t('frontline.parcels.collect') }}</button>
+                      </form>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {# --- Security suite --- #}
+  {% if incidents is defined %}
+    <section class="card" aria-labelledby="incident-heading" style="margin-top: var(--space-4);">
+      <h2 id="incident-heading">{{ icon_alert_octagon("icon icon--sm") }} {{ t('frontline.incident.title') }}</h2>
+      <form method="post" action="{{ url_for('frontline.incident_report') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="site_id" value="{{ site.id }}">
+        <div class="form-grid">
+          <div class="field">
+            <label for="category">{{ t('frontline.incident.category') }}<span class="required-indicator">*</span></label>
+            <input type="text" id="category" name="category" required>
+          </div>
+          <div class="field">
+            <label for="urgency">{{ t('frontline.incident.urgency') }}<span class="required-indicator">*</span></label>
+            <select id="urgency" name="urgency" required>
+              {% for level in urgency_levels %}
+                <option value="{{ level }}">{{ t('frontline.incident.urgency_' + level) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="description">{{ t('frontline.incident.description') }}<span class="required-indicator">*</span></label>
+          <textarea id="description" name="description" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-tactile">{{ t('frontline.incident.submit') }}</button>
+      </form>
+
+      {% if incidents %}
+        <div class="table-wrapper" style="margin-top: var(--space-4);">
+          <table>
+            <caption>{{ t('frontline.incident.recent') }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{{ t('frontline.incident.category') }}</th>
+                <th scope="col">{{ t('frontline.incident.urgency') }}</th>
+                <th scope="col">Reported by</th>
+                <th scope="col">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in incidents %}
+                <tr>
+                  <td>{{ i.category }}</td>
+                  <td>
+                    <span class="badge badge--{{ 'expired' if i.urgency in ('high', 'critical') else 'expiring' if i.urgency == 'medium' else 'neutral' }}">
+                      {{ t('frontline.incident.urgency_' + i.urgency) }}
+                    </span>
+                  </td>
+                  <td>{{ i.reported_by.name }}</td>
+                  <td>{{ i.occurred_at.strftime('%H:%M %d %b') }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {# --- Facilities / cleaning suite --- #}
+  {% if checklist_entries is defined %}
+    <section class="card" aria-labelledby="maintenance-heading" style="margin-top: var(--space-4);">
+      <h2 id="maintenance-heading">{{ icon_clipboard_check("icon icon--sm") }} {{ t('frontline.maintenance.title') }}</h2>
+      <form method="post" action="{{ url_for('frontline.maintenance_log') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="site_id" value="{{ site.id }}">
+        <div class="form-grid">
+          <div class="field">
+            <label for="task_name">{{ t('frontline.maintenance.task') }}<span class="required-indicator">*</span></label>
+            <input type="text" id="task_name" name="task_name" required>
+          </div>
+          <div class="field">
+            <label for="area">{{ t('frontline.maintenance.area') }}</label>
+            <input type="text" id="area" name="area">
+          </div>
+        </div>
+        <div class="field">
+          <label for="notes">{{ t('frontline.maintenance.notes') }}</label>
+          <textarea id="notes" name="notes"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-tactile">{{ t('frontline.maintenance.log') }}</button>
+      </form>
+
+      {% if checklist_entries %}
+        <div class="table-wrapper" style="margin-top: var(--space-4);">
+          <table>
+            <caption>{{ t('frontline.maintenance.recent') }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{{ t('frontline.maintenance.task') }}</th>
+                <th scope="col">{{ t('frontline.maintenance.area') }}</th>
+                <th scope="col">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in checklist_entries %}
+                <tr>
+                  <td>{{ c.task_name }}</td>
+                  <td>{{ c.area or '—' }}</td>
+                  <td>{{ c.completed_at.strftime('%H:%M %d %b') }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_users, icon_alert_triangle, icon_x_circle, icon_building, icon_invoice, icon_check_circle %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Operations Dashboard</h1>
+      <p class="page-header__meta">A snapshot of compliance, site coverage and billing status.</p>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="card stat-card">
+      <p class="stat-card__label">{{ icon_users() }} Guards in vault</p>
+      <p class="stat-card__value">{{ guard_count }}</p>
+    </div>
+    <div class="card stat-card {% if expiring %}stat-card--warning{% endif %}">
+      <p class="stat-card__label">{{ icon_alert_triangle() }} SIA expiring within 30 days</p>
+      <p class="stat-card__value">{{ expiring|length }}</p>
+    </div>
+    <div class="card stat-card {% if expired %}stat-card--danger{% endif %}">
+      <p class="stat-card__label">{{ icon_x_circle() }} SIA licences expired</p>
+      <p class="stat-card__value">{{ expired|length }}</p>
+    </div>
+    <div class="card stat-card">
+      <p class="stat-card__label">{{ icon_building() }} Active sites</p>
+      <p class="stat-card__value">{{ site_count }}</p>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <section class="card" aria-labelledby="compliance-heading">
+      <div class="card__header">
+        <h2 id="compliance-heading">Compliance attention needed</h2>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('guards.list_guards', status='expiring') }}">View Guard Vault</a>
+      </div>
+
+      {% set attention = expired + expiring %}
+      {% if attention %}
+        <div class="table-wrapper">
+          <table>
+            <caption class="visually-hidden">Guards with expiring or expired SIA licences</caption>
+            <thead>
+              <tr>
+                <th scope="col">Guard</th>
+                <th scope="col">SIA licence</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for guard in attention %}
+                <tr>
+                  <td><a href="{{ url_for('guards.detail', guard_id=guard.id) }}">{{ guard.full_name }}</a></td>
+                  <td>{{ guard.sia_license_type }} &middot; expires {{ guard.sia_expiry_date.strftime('%d %b %Y') }}</td>
+                  <td>
+                    {% if guard.sia_status == 'expired' %}
+                      <span class="badge badge--expired">{{ icon_x_circle("icon icon--sm") }} Expired</span>
+                    {% else %}
+                      <span class="badge badge--expiring">{{ icon_alert_triangle("icon icon--sm") }} Expires in {{ guard.sia_days_remaining }} days</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          {{ icon_check_circle() }}
+          <p>All guard SIA licences are valid and in good standing.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="invoicing-heading">
+      <div class="card__header">
+        <h2 id="invoicing-heading">Ready to invoice</h2>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('invoices.generate') }}">Generate invoice</a>
+      </div>
+
+      {% if sites_with_pending %}
+        <div class="table-wrapper">
+          <table>
+            <caption class="visually-hidden">Sites with completed, un-invoiced shifts</caption>
+            <thead>
+              <tr>
+                <th scope="col">Site</th>
+                <th scope="col">Client</th>
+                <th scope="col" class="numeric">Pending shifts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for site in sites_with_pending %}
+                <tr>
+                  <td><a href="{{ url_for('sites.detail', site_id=site.id) }}">{{ site.name }}</a></td>
+                  <td>{{ site.client_name }}</td>
+                  <td class="numeric">{{ site.uninvoiced_shifts|length }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          {{ icon_check_circle() }}
+          <p>No completed shifts are waiting to be invoiced.</p>
+        </div>
+      {% endif %}
+
+      <div class="card__header" style="margin-top: var(--space-5);">
+        <h3 style="margin:0;">Recent invoices</h3>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('invoices.list_invoices') }}">{{ icon_invoice("icon icon--sm") }} View all</a>
+      </div>
+      {% if recent_invoices %}
+        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap: var(--space-2);">
+          {% for invoice in recent_invoices %}
+            <li>
+              <a href="{{ url_for('invoices.detail', invoice_id=invoice.id) }}">{{ invoice.invoice_number }}</a>
+              &mdash; {{ invoice.site.name }} &mdash; £{{ '%.2f'|format(invoice.total_amount) }}
+              <span class="badge badge--{{ invoice.status }}">{{ invoice.status|capitalize }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="page-header__meta">No invoices generated yet.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_arrow_left, icon_users %}
+
+{% block title %}{{ 'Edit guard' if guard else 'Add guard' }}{% endblock %}
+
+{% block content %}
+  <a class="breadcrumb-link" href="{{ url_for('guards.list_guards') }}">{{ icon_arrow_left("icon icon--sm") }} Back to Guard Profile Vault</a>
+
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_users("icon icon--lg") }} {{ 'Edit guard profile' if guard else 'Add a new guard' }}</h1>
+      <p class="page-header__meta">Fields marked <span class="required-indicator">*</span> are required.</p>
+    </div>
+  </div>
+
+  <form class="card" method="post" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="first_name">First name <span class="required-indicator" aria-hidden="true">*</span></label>
+        <input type="text" id="first_name" name="first_name" required autocomplete="given-name"
+               value="{{ form_data.get('first_name', guard.first_name if guard else '') }}">
+      </div>
+
+      <div class="field">
+        <label for="last_name">Last name <span class="required-indicator" aria-hidden="true">*</span></label>
+        <input type="text" id="last_name" name="last_name" required autocomplete="family-name"
+               value="{{ form_data.get('last_name', guard.last_name if guard else '') }}">
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email"
+               value="{{ form_data.get('email', guard.email if guard else '') }}">
+      </div>
+
+      <div class="field">
+        <label for="phone">Phone</label>
+        <input type="tel" id="phone" name="phone" autocomplete="tel"
+               value="{{ form_data.get('phone', guard.phone if guard else '') }}">
+      </div>
+
+      <div class="field">
+        <label for="sia_license_number">SIA licence number <span class="required-indicator" aria-hidden="true">*</span></label>
+        <input type="text" id="sia_license_number" name="sia_license_number" required
+               value="{{ form_data.get('sia_license_number', guard.sia_license_number if guard else '') }}">
+        <span class="helper-text">Must be unique across the Guard Profile Vault.</span>
+      </div>
+
+      <div class="field">
+        <label for="sia_license_type">SIA licence type <span class="required-indicator" aria-hidden="true">*</span></label>
+        <select id="sia_license_type" name="sia_license_type" required>
+          <option value="" disabled {% if not (form_data.get('sia_license_type') or (guard and guard.sia_license_type)) %}selected{% endif %}>Select a licence type</option>
+          {% for option in license_types %}
+            {% set current = form_data.get('sia_license_type', guard.sia_license_type if guard else '') %}
+            <option value="{{ option }}" {% if option == current %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="sia_expiry_date">SIA expiry date <span class="required-indicator" aria-hidden="true">*</span></label>
+        <input type="date" id="sia_expiry_date" name="sia_expiry_date" required
+               value="{{ form_data.get('sia_expiry_date', guard.sia_expiry_date.isoformat() if guard else '') }}">
+      </div>
+
+      <div class="field">
+        <label for="dbs_expiry_date">DBS check expiry date</label>
+        <input type="date" id="dbs_expiry_date" name="dbs_expiry_date"
+               value="{{ form_data.get('dbs_expiry_date', guard.dbs_expiry_date.isoformat() if guard and guard.dbs_expiry_date else '') }}">
+        <span class="helper-text">Optional - leave blank if not on file.</span>
+      </div>
+    </div>
+
+    {% if guard %}
+      <div class="checkbox-field">
+        <input type="checkbox" id="is_active" name="is_active" {% if guard.is_active %}checked{% endif %}>
+        <label for="is_active">Guard is active and available for rostering</label>
+      </div>
+    {% endif %}
+
+    <div class="btn-group" style="margin-top: var(--space-4);">
+      <button type="submit" class="btn btn-primary">{{ 'Save changes' if guard else 'Add guard' }}</button>
+      <a class="btn btn-secondary" href="{{ url_for('guards.list_guards') }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

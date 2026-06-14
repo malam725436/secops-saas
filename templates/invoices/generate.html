@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_arrow_left, icon_invoice %}
+
+{% block title %}Generate invoice{% endblock %}
+
+{% block content %}
+  <a class="breadcrumb-link" href="{{ url_for('invoices.list_invoices') }}">{{ icon_arrow_left("icon icon--sm") }} Back to Shift-to-Invoice</a>
+
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_invoice("icon icon--lg") }} Generate invoice</h1>
+      <p class="page-header__meta">All completed, un-invoiced shifts for the chosen site and period will be combined into one invoice.</p>
+    </div>
+  </div>
+
+  {% if not sites %}
+    <div class="card empty-state">
+      <p>No active sites available. Add a site first.</p>
+      <a class="btn btn-primary" href="{{ url_for('sites.new_site') }}">Add site</a>
+    </div>
+  {% else %}
+    <form class="card" method="post" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="site_id">Site <span class="required-indicator" aria-hidden="true">*</span></label>
+          <select id="site_id" name="site_id" required>
+            {% for site in sites %}
+              <option value="{{ site.id }}" {% if form_data.get('site_id') == site.id|string %}selected{% endif %}>
+                {{ site.name }} &mdash; {{ site.client_name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="period_start">Period start <span class="required-indicator" aria-hidden="true">*</span></label>
+          <input type="date" id="period_start" name="period_start" required value="{{ form_data.get('period_start', '') }}">
+        </div>
+
+        <div class="field">
+          <label for="period_end">Period end <span class="required-indicator" aria-hidden="true">*</span></label>
+          <input type="date" id="period_end" name="period_end" required value="{{ form_data.get('period_end', '') }}">
+        </div>
+      </div>
+
+      <div class="card" id="invoice-preview" style="background: var(--color-surface-alt, var(--color-surface)); margin-bottom: var(--space-4);">
+        <h2 style="margin-top: 0;">Preview</h2>
+        <dl>
+          <dt class="page-header__meta">Approved, un-invoiced hours</dt>
+          <dd id="preview-hours">&ndash;</dd>
+          <dt class="page-header__meta">Billing rate</dt>
+          <dd id="preview-rate">&ndash;</dd>
+          <dt class="page-header__meta">Estimated total</dt>
+          <dd id="preview-amount" style="font-size: var(--font-size-lg, 1.25rem); font-weight: 600;">&ndash;</dd>
+        </dl>
+        <p class="helper-text" id="preview-status">Select a site and period to see eligible shift hours.</p>
+      </div>
+
+      <button type="submit" class="btn btn-primary">{{ icon_invoice("icon icon--sm") }} Generate invoice</button>
+    </form>
+
+    <script>
+      (function () {
+        const siteSelect = document.getElementById("site_id");
+        const periodStart = document.getElementById("period_start");
+        const periodEnd = document.getElementById("period_end");
+        const hoursEl = document.getElementById("preview-hours");
+        const rateEl = document.getElementById("preview-rate");
+        const amountEl = document.getElementById("preview-amount");
+        const statusEl = document.getElementById("preview-status");
+
+        async function updatePreview() {
+          const siteId = siteSelect.value;
+          const start = periodStart.value;
+          const end = periodEnd.value;
+
+          if (!siteId || !start || !end) {
+            statusEl.textContent = "Select a site and period to see eligible shift hours.";
+            hoursEl.textContent = "–";
+            rateEl.textContent = "–";
+            amountEl.textContent = "–";
+            return;
+          }
+
+          const params = new URLSearchParams({ site_id: siteId, period_start: start, period_end: end });
+          try {
+            const response = await fetch("{{ url_for('invoices.preview') }}?" + params.toString());
+            const data = await response.json();
+
+            hoursEl.textContent = data.hours + " hrs";
+            rateEl.textContent = "£" + data.billing_rate.toFixed(2) + " / hr";
+            amountEl.textContent = "£" + data.amount.toFixed(2);
+
+            if (data.shift_count === 0) {
+              statusEl.textContent = "No approved, un-invoiced shifts found for that site and period.";
+            } else {
+              statusEl.textContent = data.shift_count + " approved shift(s) included in this estimate.";
+            }
+          } catch (err) {
+            statusEl.textContent = "Could not load preview.";
+          }
+        }
+
+        siteSelect.addEventListener("change", updatePreview);
+        periodStart.addEventListener("change", updatePreview);
+        periodEnd.addEventListener("change", updatePreview);
+        updatePreview();
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

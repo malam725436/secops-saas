@@ -1,0 +1,25 @@
+{% extends "auth/_auth_base.html" %}
+{% from "_icons.html" import icon_shield %}
+
+{% block title %}{{ t('login.mfa_title') }}{% endblock %}
+
+{% block content %}
+  <div class="auth-card card">
+    <div class="auth-card__brand">
+      {{ icon_shield("icon icon--lg") }}
+      <h1>{{ t('login.mfa_title') }}</h1>
+    </div>
+    <p class="page-header__meta">{{ t('login.mfa_subtitle') }}</p>
+
+    <form method="post" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="field">
+        <label for="code">{{ t('login.mfa_code') }}<span class="required-indicator" aria-hidden="true">*</span></label>
+        <input type="text" id="code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required autofocus>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%;">{{ t('login.mfa_submit') }}</button>
+    </form>
+  </div>
+{% endblock %}

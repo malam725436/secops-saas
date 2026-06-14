@@ -1,0 +1,157 @@
+{# Inline SVG icon set (Lucide-style, 24x24, stroke-width 2, currentColor).
+   Always pair with visible text or an aria-label on the parent control -
+   these are decorative (aria-hidden) by default. #}
+
+{% macro icon_shield(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_check_circle(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <circle cx="12" cy="12" r="10"/>
+  <path d="m9 12 2 2 4-4"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_alert_triangle(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="m10.3 3.86 8.4 14.55A1 1 0 0 1 17.86 20H3.14a1 1 0 0 1-.84-1.59L10.7 3.86a1 1 0 0 1 1.6 0Z"/>
+  <path d="M12 9v4"/>
+  <path d="M12 17h.01"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_x_circle(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <circle cx="12" cy="12" r="10"/>
+  <path d="m15 9-6 6"/>
+  <path d="m9 9 6 6"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_building(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <rect x="4" y="2" width="16" height="20" rx="1"/>
+  <path d="M9 22v-4h6v4"/>
+  <path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_users(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+  <circle cx="9" cy="7" r="4"/>
+  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_invoice(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/>
+  <path d="M14 2v6h6"/>
+  <path d="M9 13h6M9 17h6"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_plus(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M12 5v14M5 12h14"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_calendar(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <rect x="3" y="4" width="18" height="18" rx="2"/>
+  <path d="M16 2v4M8 2v4M3 10h18"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_arrow_left(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="m12 19-7-7 7-7"/>
+  <path d="M19 12H5"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_layout(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <rect x="3" y="3" width="18" height="18" rx="2"/>
+  <path d="M3 9h18M9 21V9"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_sun(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <circle cx="12" cy="12" r="4"/>
+  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_moon(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_log_out(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+  <path d="M16 17l5-5-5-5"/>
+  <path d="M21 12H9"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_globe(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <circle cx="12" cy="12" r="10"/>
+  <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_clock(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <circle cx="12" cy="12" r="10"/>
+  <path d="M12 6v6l4 2"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_user_check(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+  <circle cx="9" cy="7" r="4"/>
+  <path d="m16 11 2 2 4-4"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_key(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <circle cx="7.5" cy="15.5" r="5.5"/>
+  <path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_package(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M16.5 9.4 7.5 4.21"/>
+  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+  <path d="m3.27 6.96 8.73 5.05 8.73-5.05M12 22.08V12"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_alert_octagon(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86Z"/>
+  <path d="M12 8v4M12 16h.01"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_clipboard_check(class="icon") %}
+<svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <rect x="8" y="2" width="8" height="4" rx="1"/>
+  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+  <path d="m9 14 2 2 4-4"/>
+</svg>
+{% endmacro %}

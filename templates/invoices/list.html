@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_invoice, icon_plus %}
+
+{% block title %}Shift-to-Invoice{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_invoice("icon icon--lg") }} Shift-to-Invoice</h1>
+      <p class="page-header__meta">Generate client invoices automatically from completed roster shifts.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('invoices.generate') }}">{{ icon_plus() }} Generate invoice</a>
+  </div>
+
+  {% if invoices %}
+    <div class="table-wrapper">
+      <table>
+        <caption class="visually-hidden">Generated invoices</caption>
+        <thead>
+          <tr>
+            <th scope="col">Invoice</th>
+            <th scope="col">Site</th>
+            <th scope="col">Period</th>
+            <th scope="col">Issued</th>
+            <th scope="col" class="numeric">Total</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in invoices %}
+            <tr>
+              <td><a href="{{ url_for('invoices.detail', invoice_id=invoice.id) }}">{{ invoice.invoice_number }}</a></td>
+              <td>{{ invoice.site.name }}</td>
+              <td>{{ invoice.period_start.strftime('%d %b %Y') }} &ndash; {{ invoice.period_end.strftime('%d %b %Y') }}</td>
+              <td>{{ invoice.issue_date.strftime('%d %b %Y') }}</td>
+              <td class="numeric">£{{ '%.2f'|format(invoice.total_amount) }}</td>
+              <td><span class="badge badge--{{ invoice.status }}">{{ invoice.status|capitalize }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card empty-state">
+      {{ icon_invoice() }}
+      <p>No invoices generated yet. Mark roster shifts as complete, then generate an invoice for the billing period.</p>
+      <a class="btn btn-primary" href="{{ url_for('invoices.generate') }}">{{ icon_plus("icon icon--sm") }} Generate invoice</a>
+    </div>
+  {% endif %}
+{% endblock %}

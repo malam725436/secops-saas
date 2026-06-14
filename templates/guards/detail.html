@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_arrow_left, icon_users, icon_check_circle, icon_alert_triangle, icon_x_circle, icon_calendar %}
+
+{% block title %}{{ guard.full_name }}{% endblock %}
+
+{% block content %}
+  <a class="breadcrumb-link" href="{{ url_for('guards.list_guards') }}">{{ icon_arrow_left("icon icon--sm") }} Back to Guard Profile Vault</a>
+
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_users("icon icon--lg") }} {{ guard.full_name }}</h1>
+      <p class="page-header__meta">
+        {% if not guard.is_active %}
+          <span class="badge badge--neutral">Inactive</span>
+        {% endif %}
+      </p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('guards.edit_guard', guard_id=guard.id) }}">Edit profile</a>
+  </div>
+
+  <div class="grid-2">
+    <section class="card" aria-labelledby="profile-heading">
+      <h2 id="profile-heading">Profile details</h2>
+      <dl>
+        <dt class="page-header__meta">Email</dt>
+        <dd>{{ guard.email or 'Not provided' }}</dd>
+        <dt class="page-header__meta">Phone</dt>
+        <dd>{{ guard.phone or 'Not provided' }}</dd>
+        <dt class="page-header__meta">DBS check expiry</dt>
+        <dd>{{ guard.dbs_expiry_date.strftime('%d %b %Y') if guard.dbs_expiry_date else 'Not on file' }}</dd>
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="compliance-heading">
+      <h2 id="compliance-heading">SIA compliance</h2>
+      <p><strong>Licence type:</strong> {{ guard.sia_license_type }}</p>
+      <p><strong>Licence number:</strong> {{ guard.sia_license_number }}</p>
+      <p><strong>Expiry date:</strong> {{ guard.sia_expiry_date.strftime('%d %b %Y') }}</p>
+      <p>
+        {% if guard.sia_status == 'valid' %}
+          <span class="badge badge--valid">{{ icon_check_circle("icon icon--sm") }} Valid &mdash; {{ guard.sia_days_remaining }} days remaining</span>
+        {% elif guard.sia_status == 'expiring' %}
+          <span class="badge badge--expiring">{{ icon_alert_triangle("icon icon--sm") }} Expires in {{ guard.sia_days_remaining }} days &mdash; renewal required</span>
+        {% else %}
+          <span class="badge badge--expired">{{ icon_x_circle("icon icon--sm") }} Expired {{ -guard.sia_days_remaining }} days ago &mdash; not eligible for rostering</span>
+        {% endif %}
+      </p>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="shifts-heading" style="margin-top: var(--space-5);">
+    <h2 id="shifts-heading">{{ icon_calendar("icon icon--sm") }} Assigned shifts</h2>
+    {% if guard.shifts %}
+      <div class="table-wrapper">
+        <table>
+          <caption class="visually-hidden">Shifts assigned to {{ guard.full_name }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Site</th>
+              <th scope="col">Time</th>
+              <th scope="col">Role</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for shift in guard.shifts|sort(attribute='shift_date', reverse=true) %}
+              <tr>
+                <td>{{ shift.shift_date.strftime('%d %b %Y') }}</td>
+                <td><a href="{{ url_for('sites.detail', site_id=shift.site_id) }}">{{ shift.site.name }}</a></td>
+                <td>{{ shift.start_time.strftime('%H:%M') }}&ndash;{{ shift.end_time.strftime('%H:%M') }}</td>
+                <td>{{ shift.role or '—' }}</td>
+                <td><span class="badge badge--{{ shift.status }}">{{ shift.status|capitalize }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>No shifts have been assigned to this guard yet.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

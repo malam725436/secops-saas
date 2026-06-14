@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_clock, icon_check_circle %}
+
+{% block title %}Payroll{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_clock("icon icon--lg") }} Payroll</h1>
+      <p class="page-header__meta">Approved, clocked hours for the current pay cycle, ready for payout.</p>
+    </div>
+  </div>
+
+  <form class="card" method="get" style="margin-bottom: var(--space-4);">
+    <div class="form-grid">
+      <div class="field">
+        <label for="period_start">Period start</label>
+        <input type="date" id="period_start" name="period_start" value="{{ period_start.isoformat() }}">
+      </div>
+      <div class="field">
+        <label for="period_end">Period end</label>
+        <input type="date" id="period_end" name="period_end" value="{{ period_end.isoformat() }}">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-secondary">Update period</button>
+  </form>
+
+  {% if rows %}
+    <div class="table-wrapper">
+      <table>
+        <caption class="visually-hidden">Pay cycle summary, {{ period_start.strftime('%d %b %Y') }} &ndash; {{ period_end.strftime('%d %b %Y') }}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Employee</th>
+            <th scope="col" class="numeric">Approved hours</th>
+            <th scope="col" class="numeric">Hourly rate</th>
+            <th scope="col" class="numeric">Total payout</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td><a href="{{ url_for('guards.detail', guard_id=row.guard.id) }}">{{ row.guard.full_name }}</a></td>
+              <td class="numeric">{{ row.total_hours }}</td>
+              <td class="numeric">£{{ '%.2f'|format(row.pay_rate) }}</td>
+              <td class="numeric">£{{ '%.2f'|format(row.total_pay) }}</td>
+              <td>
+                <form method="post" action="{{ url_for('payroll.approve_payout', guard_id=row.guard.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="period_start" value="{{ period_start.isoformat() }}">
+                  <input type="hidden" name="period_end" value="{{ period_end.isoformat() }}">
+                  <button type="submit" class="btn btn-primary btn-sm">Approve for payout</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card empty-state">
+      {{ icon_clock() }}
+      <p>No approved, unpaid hours found for this period.</p>
+    </div>
+  {% endif %}
+
+  {% if recent_payouts %}
+    <section class="card" style="margin-top: var(--space-5);">
+      <h2>Recent payouts</h2>
+      <div class="table-wrapper">
+        <table>
+          <caption class="visually-hidden">Recent payroll payouts</caption>
+          <thead>
+            <tr>
+              <th scope="col">Employee</th>
+              <th scope="col">Period</th>
+              <th scope="col" class="numeric">Hours</th>
+              <th scope="col" class="numeric">Total pay</th>
+              <th scope="col">Approved</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payout in recent_payouts %}
+              <tr>
+                <td>{{ payout.guard.full_name }}</td>
+                <td>{{ payout.period_start.strftime('%d %b %Y') }} &ndash; {{ payout.period_end.strftime('%d %b %Y') }}</td>
+                <td class="numeric">{{ payout.total_hours }}</td>
+                <td class="numeric">£{{ '%.2f'|format(payout.total_pay) }}</td>
+                <td>{{ payout.approved_at.strftime('%d %b %Y %H:%M') }} by {{ payout.approved_by.name }}</td>
+                <td><span class="badge badge--approved">{{ icon_check_circle("icon icon--sm") }} Paid</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

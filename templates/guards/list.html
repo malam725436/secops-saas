@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_users, icon_plus, icon_check_circle, icon_alert_triangle, icon_x_circle %}
+
+{% block title %}Guard Profile Vault{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_users("icon icon--lg") }} Guard Profile Vault</h1>
+      <p class="page-header__meta">Track SIA licence compliance and expiry dates across your workforce.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('guards.new_guard') }}">{{ icon_plus() }} Add guard</a>
+  </div>
+
+  <div class="filter-bar" role="group" aria-label="Filter guards by SIA status">
+    <a class="filter-chip" {% if status_filter == 'all' %}aria-current="true"{% endif %} href="{{ url_for('guards.list_guards', status='all') }}">
+      All ({{ summary.total }})
+    </a>
+    <a class="filter-chip" {% if status_filter == 'expiring' %}aria-current="true"{% endif %} href="{{ url_for('guards.list_guards', status='expiring') }}">
+      {{ icon_alert_triangle("icon icon--sm") }} Expiring soon ({{ summary.expiring }})
+    </a>
+    <a class="filter-chip" {% if status_filter == 'expired' %}aria-current="true"{% endif %} href="{{ url_for('guards.list_guards', status='expired') }}">
+      {{ icon_x_circle("icon icon--sm") }} Expired ({{ summary.expired }})
+    </a>
+    <a class="filter-chip" {% if status_filter == 'valid' %}aria-current="true"{% endif %} href="{{ url_for('guards.list_guards', status='valid') }}">
+      {{ icon_check_circle("icon icon--sm") }} Valid
+    </a>
+  </div>
+
+  {% if guards %}
+    <div class="table-wrapper">
+      <table>
+        <caption class="visually-hidden">Guard profiles and SIA licence status</caption>
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">SIA licence</th>
+            <th scope="col">Expiry date</th>
+            <th scope="col">Status</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for guard in guards %}
+            <tr>
+              <td><a href="{{ url_for('guards.detail', guard_id=guard.id) }}">{{ guard.full_name }}</a></td>
+              <td>{{ guard.sia_license_type }}<br><span class="page-header__meta">{{ guard.sia_license_number }}</span></td>
+              <td>{{ guard.sia_expiry_date.strftime('%d %b %Y') }}</td>
+              <td>
+                {% if guard.sia_status == 'valid' %}
+                  <span class="badge badge--valid">{{ icon_check_circle("icon icon--sm") }} Valid</span>
+                {% elif guard.sia_status == 'expiring' %}
+                  <span class="badge badge--expiring">{{ icon_alert_triangle("icon icon--sm") }} Expires in {{ guard.sia_days_remaining }}d</span>
+                {% else %}
+                  <span class="badge badge--expired">{{ icon_x_circle("icon icon--sm") }} Expired {{ -guard.sia_days_remaining }}d ago</span>
+                {% endif %}
+              </td>
+              <td><a class="btn btn-secondary btn-sm" href="{{ url_for('guards.edit_guard', guard_id=guard.id) }}">Edit</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card empty-state">
+      {{ icon_users() }}
+      <p>No guards match this filter yet.</p>
+      <a class="btn btn-primary" href="{{ url_for('guards.new_guard') }}">{{ icon_plus() }} Add your first guard</a>
+    </div>
+  {% endif %}
+{% endblock %}

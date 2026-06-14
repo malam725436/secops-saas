@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" role="img" aria-label="SecOps Hub">
+  <path d="M20 4 32 8v10c0 10-6.5 16-12 18-5.5-2-12-8-12-18V8Z" fill="#CA8A04"/>
+  <path d="m15.5 19 3 3 6-6" fill="none" stroke="#14532D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="42" y="26" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="18" font-weight="700" fill="#14532D">SecOps Hub</text>
+</svg>

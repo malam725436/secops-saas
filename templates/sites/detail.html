@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_arrow_left, icon_building, icon_plus, icon_calendar, icon_check_circle, icon_alert_triangle, icon_x_circle %}
+
+{% block title %}{{ site.name }}{% endblock %}
+
+{% block content %}
+  <a class="breadcrumb-link" href="{{ url_for('sites.list_sites') }}">{{ icon_arrow_left("icon icon--sm") }} Back to Your Sites</a>
+
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_building("icon icon--lg") }} {{ site.name }}</h1>
+      <p class="page-header__meta">{{ site.client_name }}{% if site.address %} &middot; {{ site.address }}{% endif %}</p>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('sites.edit_site', site_id=site.id) }}">Edit site</a>
+  </div>
+
+  <div class="grid-2">
+    <section class="card" aria-labelledby="assign-heading">
+      <h2 id="assign-heading">{{ icon_plus("icon icon--sm") }} Assign guard to roster</h2>
+
+      {% set ineligible = guards|rejectattr('sia_status', 'eq', 'valid')|list %}
+      {% if not guards %}
+        <div class="empty-state">
+          <p>No active guards available. Add guards to the Guard Profile Vault first.</p>
+          <a class="btn btn-primary" href="{{ url_for('guards.new_guard') }}">{{ icon_plus("icon icon--sm") }} Add guard</a>
+        </div>
+      {% else %}
+        <form method="post" action="{{ url_for('sites.assign_roster', site_id=site.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="guard_id">Guard <span class="required-indicator" aria-hidden="true">*</span></label>
+              <select id="guard_id" name="guard_id" required>
+                {% for guard in guards %}
+                  <option value="{{ guard.id }}">
+                    {{ guard.full_name }}{% if guard.sia_status != 'valid' %} (SIA {{ guard.sia_status }}){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              <span class="helper-text">Guards with an expiring or expired SIA licence are marked above.</span>
+            </div>
+
+            <div class="field">
+              <label for="shift_date">Shift date <span class="required-indicator" aria-hidden="true">*</span></label>
+              <input type="date" id="shift_date" name="shift_date" required value="{{ today.isoformat() }}">
+            </div>
+
+            <div class="field">
+              <label for="start_time">Start time <span class="required-indicator" aria-hidden="true">*</span></label>
+              <input type="time" id="start_time" name="start_time" required value="08:00">
+            </div>
+
+            <div class="field">
+              <label for="end_time">End time <span class="required-indicator" aria-hidden="true">*</span></label>
+              <input type="time" id="end_time" name="end_time" required value="20:00">
+            </div>
+
+            <div class="field">
+              <label for="role">Role / post</label>
+              <input type="text" id="role" name="role" placeholder="e.g. Front of House, Night Patrol">
+            </div>
+
+            <div class="field">
+              <label for="pay_rate">Pay rate (£/hr)</label>
+              <input type="number" id="pay_rate" name="pay_rate" min="0" step="0.01" inputmode="decimal" value="{{ site.pay_rate_default }}">
+            </div>
+
+            <div class="field">
+              <label for="bill_rate">Bill rate (£/hr)</label>
+              <input type="number" id="bill_rate" name="bill_rate" min="0" step="0.01" inputmode="decimal" value="{{ site.bill_rate_default }}">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary">{{ icon_plus("icon icon--sm") }} Add to roster</button>
+        </form>
+      {% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="site-info-heading">
+      <h2 id="site-info-heading">Site information</h2>
+      <dl>
+        <dt class="page-header__meta">Site manager</dt>
+        <dd>{{ site.site_manager or 'Not assigned' }}</dd>
+        <dt class="page-header__meta">Default pay rate</dt>
+        <dd>£{{ '%.2f'|format(site.pay_rate_default) }} / hr</dd>
+        <dt class="page-header__meta">Default bill rate</dt>
+        <dd>£{{ '%.2f'|format(site.bill_rate_default) }} / hr</dd>
+        <dt class="page-header__meta">Status</dt>
+        <dd>
+          {% if site.is_active %}
+            <span class="badge badge--valid">{{ icon_check_circle("icon icon--sm") }} Active</span>
+          {% else %}
+            <span class="badge badge--neutral">Inactive</span>
+          {% endif %}
+        </dd>
+      </dl>
+      {% if site.uninvoiced_shifts %}
+        <a class="btn btn-primary" href="{{ url_for('invoices.generate') }}">Generate invoice for this site</a>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="roster-heading" style="margin-top: var(--space-5);">
+    <h2 id="roster-heading">{{ icon_calendar("icon icon--sm") }} Roster</h2>
+
+    {% if roster %}
+      <div class="table-wrapper">
+        <table>
+          <caption class="visually-hidden">Roster assignments for {{ site.name }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Guard</th>
+              <th scope="col">Time</th>
+              <th scope="col">Role</th>
+              <th scope="col" class="numeric">Hours</th>
+              <th scope="col" class="numeric">Bill amount</th>
+              <th scope="col">Status</th>
+              <th scope="col"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for shift in roster %}
+              <tr>
+                <td>{{ shift.shift_date.strftime('%d %b %Y') }}</td>
+                <td><a href="{{ url_for('guards.detail', guard_id=shift.guard_id) }}">{{ shift.guard.full_name }}</a></td>
+                <td>{{ shift.start_time.strftime('%H:%M') }}&ndash;{{ shift.end_time.strftime('%H:%M') }}</td>
+                <td>{{ shift.role or '—' }}</td>
+                <td class="numeric">{{ shift.hours }}</td>
+                <td class="numeric">£{{ '%.2f'|format(shift.bill_amount) }}</td>
+                <td>
+                  {% if shift.status == 'scheduled' %}
+                    <span class="badge badge--scheduled">Scheduled</span>
+                  {% elif shift.status == 'completed' %}
+                    <span class="badge badge--completed">{{ icon_check_circle("icon icon--sm") }} Completed</span>
+                  {% else %}
+                    <span class="badge badge--invoiced">{{ icon_check_circle("icon icon--sm") }} Invoiced</span>
+                  {% endif %}
+                  {% if shift.status == 'completed' %}
+                    {% if shift.approved_by_manager %}
+                      <span class="badge badge--approved">{{ icon_check_circle("icon icon--sm") }} Approved</span>
+                    {% else %}
+                      <span class="badge badge--pending">Awaiting approval</span>
+                    {% endif %}
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="btn-group">
+                    {% if shift.status == 'scheduled' %}
+                      <form method="post" action="{{ url_for('sites.complete_shift', site_id=site.id, shift_id=shift.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-secondary btn-sm">Mark complete</button>
+                      </form>
+                    {% endif %}
+                    {% if shift.status == 'completed' and not shift.approved_by_manager %}
+                      <form method="post" action="{{ url_for('sites.approve_shift', site_id=site.id, shift_id=shift.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                      </form>
+                    {% endif %}
+                    {% if shift.status != 'invoiced' %}
+                      <form method="post" action="{{ url_for('sites.delete_shift', site_id=site.id, shift_id=shift.id) }}"
+                            data-confirm="Remove this roster entry for {{ shift.guard.full_name }} on {{ shift.shift_date.strftime('%d %b %Y') }}?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        {{ icon_calendar() }}
+        <p>No shifts have been assigned to this site yet.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

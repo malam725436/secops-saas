@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_arrow_left, icon_invoice, icon_check_circle %}
+
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+  <a class="breadcrumb-link" href="{{ url_for('invoices.list_invoices') }}">{{ icon_arrow_left("icon icon--sm") }} Back to Shift-to-Invoice</a>
+
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_invoice("icon icon--lg") }} {{ invoice.invoice_number }}</h1>
+      <p class="page-header__meta">
+        {{ invoice.site.name }} &mdash; {{ invoice.site.client_name }}
+        &middot; <span class="badge badge--{{ invoice.status }}">{{ invoice.status|capitalize }}</span>
+      </p>
+    </div>
+    <div class="btn-group">
+      {% if invoice.status == 'draft' %}
+        <form method="post" action="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-secondary">Mark as sent</button>
+        </form>
+      {% elif invoice.status == 'sent' %}
+        <form method="post" action="{{ url_for('invoices.mark_paid', invoice_id=invoice.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-secondary">{{ icon_check_circle("icon icon--sm") }} Mark as paid</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <section class="card" aria-labelledby="invoice-info-heading">
+      <h2 id="invoice-info-heading">Invoice details</h2>
+      <dl>
+        <dt class="page-header__meta">Billing period</dt>
+        <dd>{{ invoice.period_start.strftime('%d %b %Y') }} &ndash; {{ invoice.period_end.strftime('%d %b %Y') }}</dd>
+        <dt class="page-header__meta">Issue date</dt>
+        <dd>{{ invoice.issue_date.strftime('%d %b %Y') }}</dd>
+        <dt class="page-header__meta">Client</dt>
+        <dd>{{ invoice.site.client_name }}</dd>
+        <dt class="page-header__meta">Site</dt>
+        <dd><a href="{{ url_for('sites.detail', site_id=invoice.site_id) }}">{{ invoice.site.name }}</a></dd>
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="invoice-summary-heading">
+      <h2 id="invoice-summary-heading">Summary</h2>
+      <dl>
+        <dt class="page-header__meta">Total hours</dt>
+        <dd>{{ invoice.total_hours }}</dd>
+        <dt class="page-header__meta">Total amount due</dt>
+        <dd class="stat-card__value">£{{ '%.2f'|format(invoice.total_amount) }}</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="line-items-heading" style="margin-top: var(--space-5);">
+    <h2 id="line-items-heading">Shift line items</h2>
+    <div class="table-wrapper">
+      <table>
+        <caption class="visually-hidden">Shifts included in {{ invoice.invoice_number }}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Guard</th>
+            <th scope="col">Role</th>
+            <th scope="col">Time</th>
+            <th scope="col" class="numeric">Hours</th>
+            <th scope="col" class="numeric">Rate (£/hr)</th>
+            <th scope="col" class="numeric">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for shift in shifts %}
+            <tr>
+              <td>{{ shift.shift_date.strftime('%d %b %Y') }}</td>
+              <td>{{ shift.guard.full_name }}</td>
+              <td>{{ shift.role or '—' }}</td>
+              <td>{{ shift.start_time.strftime('%H:%M') }}&ndash;{{ shift.end_time.strftime('%H:%M') }}</td>
+              <td class="numeric">{{ shift.hours }}</td>
+              <td class="numeric">{{ '%.2f'|format(shift.bill_rate) }}</td>
+              <td class="numeric">£{{ '%.2f'|format(shift.bill_amount) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" colspan="6" style="text-align:right;">Total</th>
+            <td class="numeric"><strong>£{{ '%.2f'|format(invoice.total_amount) }}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+{% endblock %}
