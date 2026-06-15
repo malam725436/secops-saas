@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
@@ -14,7 +14,50 @@ from blueprints.sites import sites_bp
 from config import Config
 from extensions import csrf, db, login_manager
 from i18n import SUPPORTED_LANGUAGES, translate
-from models import SESSION_TIMEOUT_MINUTES, Guard, Invoice, Site, User
+from models import FINANCE_ROLES, SESSION_TIMEOUT_MINUTES, Guard, Invoice, Shift, Site, User
+
+
+def _current_week_range(today=None):
+    today = today or date.today()
+    start = today - timedelta(days=today.weekday())
+    end = start + timedelta(days=6)
+    return start, end
+
+
+def _executive_metrics(sites):
+    """Revenue, payroll, profit and weekly staffing snapshot for the executive dashboard."""
+    total_revenue = float(sum(invoice.total_amount for invoice in Invoice.query.all()))
+    total_payroll = round(
+        sum(shift.pay_amount for shift in Shift.query.filter(Shift.guard_id.isnot(None)).all()), 2
+    )
+    net_profit = round(total_revenue - total_payroll, 2)
+    profit_margin = round((net_profit / total_revenue) * 100, 1) if total_revenue else 0.0
+
+    week_start, week_end = _current_week_range()
+    week_shifts = Shift.query.filter(Shift.shift_date >= week_start, Shift.shift_date <= week_end).all()
+
+    staff_ids = set()
+    site_hours = {site.id: 0.0 for site in sites}
+    for shift in week_shifts:
+        if shift.guard_id is not None:
+            staff_ids.add(("guard", shift.guard_id))
+        elif shift.assigned_user_id is not None:
+            staff_ids.add(("user", shift.assigned_user_id))
+        if shift.site_id in site_hours:
+            site_hours[shift.site_id] += shift.hours
+
+    active_sites = [{"site": site, "hours": round(site_hours[site.id], 2)} for site in sites]
+
+    return {
+        "total_revenue": total_revenue,
+        "total_payroll": total_payroll,
+        "net_profit": net_profit,
+        "profit_margin": profit_margin,
+        "scheduled_staff_count": len(staff_ids),
+        "active_sites": active_sites,
+        "week_start": week_start,
+        "week_end": week_end,
+    }
 
 
 def create_app():
@@ -81,14 +124,19 @@ def create_app():
         sites_with_pending = [s for s in sites if s.uninvoiced_shifts]
         recent_invoices = Invoice.query.order_by(Invoice.issue_date.desc()).limit(5).all()
 
+        # Executive analytics (revenue/payroll/profit) are corporate financial
+        # data - restricted to Owners and Ops Managers per GDPR data isolation.
+        metrics = _executive_metrics(sites) if current_user.role in FINANCE_ROLES else None
+
         return render_template(
-            "dashboard.html",
+            "index.html",
             guard_count=len(guards),
             expiring=expiring,
             expired=expired,
             site_count=len(sites),
             sites_with_pending=sites_with_pending,
             recent_invoices=recent_invoices,
+            metrics=metrics,
         )
 
     @app.errorhandler(403)

@@ -168,6 +168,15 @@ def detail(invoice_id):
     return render_template("invoices/detail.html", invoice=invoice, shifts=shifts)
 
 
+@invoices_bp.route("/<int:invoice_id>/mark-approved", methods=["POST"])
+def mark_approved(invoice_id):
+    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice.status = "approved"
+    db.session.commit()
+    flash(f"Invoice {invoice.invoice_number} approved.", "success")
+    return redirect(url_for("invoices.detail", invoice_id=invoice.id))
+
+
 @invoices_bp.route("/<int:invoice_id>/mark-sent", methods=["POST"])
 def mark_sent(invoice_id):
     invoice = Invoice.query.get_or_404(invoice_id)

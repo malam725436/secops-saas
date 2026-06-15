@@ -529,6 +529,8 @@ textarea:focus-visible,
 
 .stat-card--warning { border-left-color: var(--status-warning-fg); }
 .stat-card--danger { border-left-color: var(--status-danger-fg); }
+.stat-card--success { border-left-color: var(--status-valid-fg); }
+.stat-card--success .stat-card__value { color: var(--status-valid-fg); }
 
 .stat-card__label {
   display: flex;

@@ -16,6 +16,11 @@
     </div>
     <div class="btn-group">
       {% if invoice.status == 'draft' %}
+        <form method="post" action="{{ url_for('invoices.mark_approved', invoice_id=invoice.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-secondary">{{ icon_check_circle("icon icon--sm") }} Approve</button>
+        </form>
+      {% elif invoice.status == 'approved' %}
         <form method="post" action="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-secondary">Mark as sent</button>

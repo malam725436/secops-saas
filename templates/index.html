@@ -1,15 +1,36 @@
 {% extends "base.html" %}
-{% from "_icons.html" import icon_users, icon_alert_triangle, icon_x_circle, icon_building, icon_invoice, icon_check_circle %}
+{% from "_icons.html" import icon_users, icon_alert_triangle, icon_x_circle, icon_building, icon_invoice, icon_check_circle, icon_trending_up, icon_wallet, icon_scale, icon_calendar %}
 
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
   <div class="page-header">
     <div>
-      <h1>Operations Dashboard</h1>
+      <h1>{% if metrics %}Executive Dashboard{% else %}Operations Dashboard{% endif %}</h1>
       <p class="page-header__meta">A snapshot of compliance, site coverage and billing status.</p>
     </div>
   </div>
+
+  {% if metrics %}
+    <div class="stat-grid">
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_trending_up("icon icon--sm") }} Total revenue</p>
+        <p class="stat-card__value">£{{ '{:,.2f}'.format(metrics.total_revenue) }}</p>
+      </div>
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_wallet("icon icon--sm") }} Total payroll</p>
+        <p class="stat-card__value">£{{ '{:,.2f}'.format(metrics.total_payroll) }}</p>
+      </div>
+      <div class="card stat-card {% if metrics.net_profit < 0 %}stat-card--danger{% else %}stat-card--success{% endif %}">
+        <p class="stat-card__label">{{ icon_scale("icon icon--sm") }} Net profit</p>
+        <p class="stat-card__value">{% if metrics.net_profit < 0 %}-{% endif %}£{{ '{:,.2f}'.format(metrics.net_profit|abs) }}</p>
+      </div>
+      <div class="card stat-card {% if metrics.profit_margin < 0 %}stat-card--danger{% else %}stat-card--success{% endif %}">
+        <p class="stat-card__label">{{ icon_check_circle("icon icon--sm") }} Profit margin</p>
+        <p class="stat-card__value">{{ metrics.profit_margin }}%</p>
+      </div>
+    </div>
+  {% endif %}
 
   <div class="stat-grid">
     <div class="card stat-card">
@@ -28,7 +49,51 @@
       <p class="stat-card__label">{{ icon_building() }} Active sites</p>
       <p class="stat-card__value">{{ site_count }}</p>
     </div>
+    {% if metrics %}
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_calendar() }} Staff scheduled this week</p>
+        <p class="stat-card__value">{{ metrics.scheduled_staff_count }}</p>
+      </div>
+    {% endif %}
   </div>
+
+  {% if metrics %}
+    <section class="card" aria-labelledby="site-hours-heading">
+      <div class="card__header">
+        <h2 id="site-hours-heading">Active sites &mdash; scheduled hours this week</h2>
+        <span class="page-header__meta">{{ metrics.week_start.strftime('%d %b') }} &ndash; {{ metrics.week_end.strftime('%d %b %Y') }}</span>
+      </div>
+
+      {% if metrics.active_sites %}
+        <div class="table-wrapper">
+          <table>
+            <caption class="visually-hidden">Active sites and their total scheduled hours for the current week</caption>
+            <thead>
+              <tr>
+                <th scope="col">Site</th>
+                <th scope="col">Client</th>
+                <th scope="col" class="numeric">Scheduled hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in metrics.active_sites %}
+                <tr>
+                  <td><a href="{{ url_for('sites.detail', site_id=row.site.id) }}">{{ row.site.name }}</a></td>
+                  <td>{{ row.site.client_name }}</td>
+                  <td class="numeric">{{ '%.2f'|format(row.hours) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          {{ icon_check_circle() }}
+          <p>No active sites have scheduled hours this week.</p>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
 
   <div class="grid-2">
     <section class="card" aria-labelledby="compliance-heading">
