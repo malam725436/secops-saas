@@ -24,7 +24,7 @@ def _parse_date(value):
 def _eligible_shifts(period_start, period_end):
     return Shift.query.filter(
         Shift.guard_id.isnot(None),
-        Shift.status == "completed",
+        Shift.status.in_(["completed", "invoiced"]),
         Shift.approved_by_manager.is_(True),
         Shift.paid_out.is_(False),
         Shift.shift_date >= period_start,
