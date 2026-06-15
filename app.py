@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta, timezone
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
@@ -8,6 +9,7 @@ from blueprints.frontline import frontline_bp
 from blueprints.guards import guards_bp
 from blueprints.invoices import invoices_bp
 from blueprints.payroll import payroll_bp
+from blueprints.roster import roster_bp
 from blueprints.sites import sites_bp
 from config import Config
 from extensions import csrf, db, login_manager
@@ -24,12 +26,15 @@ def create_app():
     csrf.init_app(app)
     login_manager.init_app(app)
 
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(frontline_bp)
     app.register_blueprint(guards_bp)
     app.register_blueprint(sites_bp)
     app.register_blueprint(invoices_bp)
     app.register_blueprint(payroll_bp)
+    app.register_blueprint(roster_bp)
 
     @login_manager.user_loader
     def load_user(user_id):

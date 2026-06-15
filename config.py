@@ -9,3 +9,7 @@ class Config:
         "DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'secops.db')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Guard Profile Vault document uploads (profile picture, SIA licence scan).
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads", "guards")
+    MAX_CONTENT_LENGTH = 8 * 1024 * 1024  # 8MB

@@ -56,6 +56,25 @@
           <dd id="preview-amount" style="font-size: var(--font-size-lg, 1.25rem); font-weight: 600;">&ndash;</dd>
         </dl>
         <p class="helper-text" id="preview-status">Select a site and period to see eligible shift hours.</p>
+
+        <div class="table-wrapper" id="preview-table-wrapper" hidden>
+          <table>
+            <caption class="visually-hidden">Eligible shifts for this invoice &mdash; tweak role or bill rate before generating</caption>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Start Time</th>
+                <th scope="col">Finish Time</th>
+                <th scope="col">Guard</th>
+                <th scope="col">Role</th>
+                <th scope="col" class="numeric">Hours</th>
+                <th scope="col" class="numeric">Bill rate (£/hr)</th>
+                <th scope="col" class="numeric">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="preview-table-body"></tbody>
+          </table>
+        </div>
       </div>
 
       <button type="submit" class="btn btn-primary">{{ icon_invoice("icon icon--sm") }} Generate invoice</button>
@@ -70,6 +89,88 @@
         const rateEl = document.getElementById("preview-rate");
         const amountEl = document.getElementById("preview-amount");
         const statusEl = document.getElementById("preview-status");
+        const tableWrapper = document.getElementById("preview-table-wrapper");
+        const tableBody = document.getElementById("preview-table-body");
+
+        function recalculateTotal() {
+          let total = 0;
+          let totalHours = 0;
+          tableBody.querySelectorAll("tr").forEach((row) => {
+            const hoursInput = row.querySelector(".preview-hours-input");
+            const rateInput = row.querySelector(".preview-rate-input");
+            const hours = parseFloat(hoursInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0;
+            const amount = hours * rate;
+            row.querySelector(".preview-amount").textContent = "£" + amount.toFixed(2);
+            total += amount;
+            totalHours += hours;
+          });
+          amountEl.textContent = "£" + total.toFixed(2);
+          hoursEl.textContent = totalHours.toFixed(2) + " hrs";
+        }
+
+        function renderShifts(shifts) {
+          // Remove any inputs from a previous preview before rebuilding.
+          tableBody.querySelectorAll("input").forEach((input) => input.remove());
+          tableBody.innerHTML = "";
+
+          if (!shifts.length) {
+            tableWrapper.hidden = true;
+            return;
+          }
+
+          shifts.forEach((shift) => {
+            const row = document.createElement("tr");
+
+            row.innerHTML =
+              "<td>" + shift.shift_date + "</td>" +
+              "<td>" + shift.start_time + "</td>" +
+              "<td>" + shift.end_time + "</td>" +
+              "<td>" + shift.guard_name + "</td>" +
+              "<td></td>" +
+              "<td class=\"numeric\"></td>" +
+              "<td></td>" +
+              "<td class=\"numeric preview-amount\">£" + shift.amount.toFixed(2) + "</td>";
+
+            const roleCell = row.children[4];
+            const roleInput = document.createElement("input");
+            roleInput.type = "text";
+            roleInput.name = "role_" + shift.id;
+            roleInput.value = shift.role;
+            roleInput.setAttribute("aria-label", "Role for shift on " + shift.shift_date);
+            roleCell.appendChild(roleInput);
+
+            const hoursCell = row.children[5];
+            const hoursInput = document.createElement("input");
+            hoursInput.type = "number";
+            hoursInput.name = "hours_" + shift.id;
+            hoursInput.min = "0";
+            hoursInput.step = "0.25";
+            hoursInput.inputMode = "decimal";
+            hoursInput.className = "preview-hours-input";
+            hoursInput.value = shift.hours;
+            hoursInput.setAttribute("aria-label", "Hours for shift on " + shift.shift_date);
+            hoursInput.addEventListener("input", recalculateTotal);
+            hoursCell.appendChild(hoursInput);
+
+            const rateCell = row.children[6];
+            const rateInput = document.createElement("input");
+            rateInput.type = "number";
+            rateInput.name = "rate_" + shift.id;
+            rateInput.min = "0";
+            rateInput.step = "0.01";
+            rateInput.inputMode = "decimal";
+            rateInput.className = "preview-rate-input";
+            rateInput.value = shift.bill_rate.toFixed(2);
+            rateInput.setAttribute("aria-label", "Bill rate for shift on " + shift.shift_date);
+            rateInput.addEventListener("input", recalculateTotal);
+            rateCell.appendChild(rateInput);
+
+            tableBody.appendChild(row);
+          });
+
+          tableWrapper.hidden = false;
+        }
 
         async function updatePreview() {
           const siteId = siteSelect.value;
@@ -81,6 +182,7 @@
             hoursEl.textContent = "–";
             rateEl.textContent = "–";
             amountEl.textContent = "–";
+            renderShifts([]);
             return;
           }
 
@@ -96,10 +198,13 @@
             if (data.shift_count === 0) {
               statusEl.textContent = "No approved, un-invoiced shifts found for that site and period.";
             } else {
-              statusEl.textContent = data.shift_count + " approved shift(s) included in this estimate.";
+              statusEl.textContent = data.shift_count + " approved shift(s) included in this estimate. Adjust role or bill rate below before generating.";
             }
+
+            renderShifts(data.shifts || []);
           } catch (err) {
             statusEl.textContent = "Could not load preview.";
+            renderShifts([]);
           }
         }
 

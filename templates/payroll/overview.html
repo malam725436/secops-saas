@@ -26,38 +26,60 @@
   </form>
 
   {% if rows %}
-    <div class="table-wrapper">
-      <table>
-        <caption class="visually-hidden">Pay cycle summary, {{ period_start.strftime('%d %b %Y') }} &ndash; {{ period_end.strftime('%d %b %Y') }}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Employee</th>
-            <th scope="col" class="numeric">Approved hours</th>
-            <th scope="col" class="numeric">Hourly rate</th>
-            <th scope="col" class="numeric">Total payout</th>
-            <th scope="col"><span class="visually-hidden">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-            <tr>
-              <td><a href="{{ url_for('guards.detail', guard_id=row.guard.id) }}">{{ row.guard.full_name }}</a></td>
-              <td class="numeric">{{ row.total_hours }}</td>
-              <td class="numeric">£{{ '%.2f'|format(row.pay_rate) }}</td>
-              <td class="numeric">£{{ '%.2f'|format(row.total_pay) }}</td>
-              <td>
-                <form method="post" action="{{ url_for('payroll.approve_payout', guard_id=row.guard.id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <input type="hidden" name="period_start" value="{{ period_start.isoformat() }}">
-                  <input type="hidden" name="period_end" value="{{ period_end.isoformat() }}">
-                  <button type="submit" class="btn btn-primary btn-sm">Approve for payout</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    {% for row in rows %}
+      <section class="card" style="margin-bottom: var(--space-4);" aria-labelledby="guard-heading-{{ row.guard.id }}">
+        <div class="page-header" style="margin-bottom: var(--space-3);">
+          <div>
+            <h2 id="guard-heading-{{ row.guard.id }}" style="margin: 0;">
+              <a href="{{ url_for('guards.detail', guard_id=row.guard.id) }}">{{ row.guard.full_name }}</a>
+            </h2>
+            <p class="page-header__meta">{{ row.total_hours }} approved hours &middot; £{{ '%.2f'|format(row.pay_rate) }} / hr</p>
+          </div>
+          <form method="post" action="{{ url_for('payroll.approve_payout', guard_id=row.guard.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="period_start" value="{{ period_start.isoformat() }}">
+            <input type="hidden" name="period_end" value="{{ period_end.isoformat() }}">
+            <button type="submit" class="btn btn-primary btn-sm">Approve for payout &mdash; £{{ '%.2f'|format(row.total_pay) }}</button>
+          </form>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <caption class="visually-hidden">Time card for {{ row.guard.full_name }}, {{ period_start.strftime('%d %b %Y') }} &ndash; {{ period_end.strftime('%d %b %Y') }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Start Time</th>
+                <th scope="col">Finish Time</th>
+                <th scope="col" class="numeric">Hours</th>
+                <th scope="col" class="numeric">Rate</th>
+                <th scope="col" class="numeric">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for shift in row.shifts %}
+                <tr>
+                  <td>{{ shift.shift_date.strftime('%d %b %Y') }}</td>
+                  <td>{{ shift.start_time.strftime('%H:%M') }}</td>
+                  <td>{{ shift.end_time.strftime('%H:%M') }}</td>
+                  <td class="numeric">{{ shift.hours }}</td>
+                  <td class="numeric">£{{ '%.2f'|format(row.pay_rate) }}</td>
+                  <td class="numeric">£{{ '%.2f'|format(shift.hours * row.pay_rate) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row" colspan="3" style="text-align:right;">Total</th>
+                <td class="numeric"><strong>{{ row.total_hours }}</strong></td>
+                <td class="numeric"></td>
+                <td class="numeric"><strong>£{{ '%.2f'|format(row.total_pay) }}</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    {% endfor %}
   {% else %}
     <div class="card empty-state">
       {{ icon_clock() }}

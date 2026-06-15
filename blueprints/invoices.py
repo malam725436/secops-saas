@@ -52,6 +52,7 @@ def generate():
         eligible_shifts = (
             Shift.query.filter(
                 Shift.site_id == site.id,
+                Shift.guard_id.isnot(None),
                 Shift.status == "completed",
                 Shift.approved_by_manager.is_(True),
                 Shift.invoice_id.is_(None),
@@ -78,6 +79,28 @@ def generate():
 
         total = 0
         for shift in eligible_shifts:
+            role_override = request.form.get(f"role_{shift.id}")
+            if role_override is not None:
+                shift.role = role_override.strip()
+
+            rate_override = request.form.get(f"rate_{shift.id}")
+            if rate_override:
+                try:
+                    new_rate = float(rate_override)
+                    if new_rate >= 0:
+                        shift.bill_rate = new_rate
+                except ValueError:
+                    pass
+
+            hours_override = request.form.get(f"hours_{shift.id}")
+            if hours_override:
+                try:
+                    new_hours = float(hours_override)
+                    if new_hours >= 0:
+                        shift.total_hours = new_hours
+                except ValueError:
+                    pass
+
             shift.invoice_id = invoice.id
             shift.status = "invoiced"
             total += shift.bill_amount
@@ -101,16 +124,17 @@ def preview():
     site = Site.query.get_or_404(site_id) if site_id else None
 
     if not site or not period_start or not period_end or period_start > period_end:
-        return jsonify(hours=0, billing_rate=0, amount=0, shift_count=0)
+        return jsonify(hours=0, billing_rate=0, amount=0, shift_count=0, shifts=[])
 
     eligible_shifts = Shift.query.filter(
         Shift.site_id == site.id,
+        Shift.guard_id.isnot(None),
         Shift.status == "completed",
         Shift.approved_by_manager.is_(True),
         Shift.invoice_id.is_(None),
         Shift.shift_date >= period_start,
         Shift.shift_date <= period_end,
-    ).all()
+    ).order_by(Shift.shift_date.asc(), Shift.start_time.asc()).all()
 
     hours = round(sum(s.hours for s in eligible_shifts), 2)
     billing_rate = float(site.billing_rate)
@@ -120,6 +144,20 @@ def preview():
         billing_rate=billing_rate,
         amount=round(hours * billing_rate, 2),
         shift_count=len(eligible_shifts),
+        shifts=[
+            {
+                "id": shift.id,
+                "shift_date": shift.shift_date.strftime("%d %b %Y"),
+                "start_time": shift.start_time.strftime("%H:%M"),
+                "end_time": shift.end_time.strftime("%H:%M"),
+                "hours": shift.hours,
+                "guard_name": shift.guard.full_name,
+                "role": shift.role or "",
+                "bill_rate": float(shift.bill_rate),
+                "amount": shift.bill_amount,
+            }
+            for shift in eligible_shifts
+        ],
     )
 
 

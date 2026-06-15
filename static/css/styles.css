@@ -597,6 +597,68 @@ textarea:focus-visible,
 }
 
 /* ==========================================================================
+   Master Roster - colour-coded staff categories
+   ========================================================================== */
+.badge--cat-blue {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.badge--cat-purple {
+  background: #EDE9FE;
+  color: #5B21B6;
+}
+
+.badge--cat-green {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.badge--cat-yellow {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.roster-grid {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.roster-grid th,
+.roster-grid td {
+  border: 1px solid var(--color-border);
+  padding: var(--space-2);
+  vertical-align: top;
+  min-width: 140px;
+}
+
+.roster-grid__staff {
+  white-space: nowrap;
+  min-width: auto;
+}
+
+.roster-chip {
+  display: block;
+  border-radius: var(--radius-sm, 4px);
+  padding: var(--space-1) var(--space-2);
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.roster-chip form {
+  display: inline;
+}
+
+.roster-chip__delete {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  font-weight: 700;
+  padding: 0 0 0 var(--space-1);
+}
+
+/* ==========================================================================
    Forms
    ========================================================================== */
 .form-grid {

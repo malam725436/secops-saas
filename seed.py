@@ -16,6 +16,9 @@ from models import (
     ROLE_OWNER,
     ROLE_RECEPTIONIST,
     ROLE_SUPERVISOR,
+    STAFF_CATEGORY_CLEANER,
+    STAFF_CATEGORY_RECEPTIONIST,
+    STAFF_CATEGORY_SUPERVISOR,
     Guard,
     Shift,
     Site,
@@ -43,6 +46,11 @@ with app.app_context():
             sia_expiry_date=today + timedelta(days=400),
             dbs_expiry_date=today + timedelta(days=600),
             pay_rate=12.50,
+            bank_account_number="12345678",
+            bank_sort_code="20-00-00",
+            next_of_kin_name="Chidi Okafor",
+            next_of_kin_relationship="Sibling",
+            next_of_kin_contact="07700 900911",
         ),
         Guard(
             first_name="Liam",
@@ -54,6 +62,11 @@ with app.app_context():
             sia_expiry_date=today + timedelta(days=18),  # expiring soon
             dbs_expiry_date=today + timedelta(days=300),
             pay_rate=13.00,
+            bank_account_number="23456789",
+            bank_sort_code="20-00-01",
+            next_of_kin_name="Sarah Whitfield",
+            next_of_kin_relationship="Spouse",
+            next_of_kin_contact="07700 900912",
         ),
         Guard(
             first_name="Priya",
@@ -65,6 +78,11 @@ with app.app_context():
             sia_expiry_date=today - timedelta(days=5),  # expired
             dbs_expiry_date=today + timedelta(days=120),
             pay_rate=12.00,
+            bank_account_number="34567890",
+            bank_sort_code="20-00-02",
+            next_of_kin_name="Raj Nair",
+            next_of_kin_relationship="Parent",
+            next_of_kin_contact="07700 900913",
         ),
         Guard(
             first_name="Connor",
@@ -76,6 +94,11 @@ with app.app_context():
             sia_expiry_date=today + timedelta(days=200),
             dbs_expiry_date=today + timedelta(days=200),
             pay_rate=15.00,
+            bank_account_number="45678901",
+            bank_sort_code="20-00-03",
+            next_of_kin_name="Maeve Reilly",
+            next_of_kin_relationship="Parent",
+            next_of_kin_contact="07700 900914",
         ),
     ]
     db.session.add_all(guards)
@@ -207,6 +230,49 @@ with app.app_context():
     for user in users:
         user.set_password(DEMO_PASSWORD)
     db.session.add_all(users)
+    db.session.commit()
+
+    # Master Roster demo data - non-guard staff scheduled this week.
+    supervisor, receptionist, cleaner = users[3], users[4], users[6]
+    roster_shifts = [
+        Shift(
+            site_id=sites[0].id,
+            assigned_user_id=supervisor.id,
+            staff_category=STAFF_CATEGORY_SUPERVISOR,
+            shift_date=today,
+            start_time=time(8, 0),
+            end_time=time(16, 0),
+            role="Site Supervisor",
+        ),
+        Shift(
+            site_id=sites[0].id,
+            assigned_user_id=receptionist.id,
+            staff_category=STAFF_CATEGORY_RECEPTIONIST,
+            shift_date=today,
+            start_time=time(8, 0),
+            end_time=time(17, 0),
+            role="Front Desk",
+        ),
+        Shift(
+            site_id=sites[1].id,
+            assigned_user_id=cleaner.id,
+            staff_category=STAFF_CATEGORY_CLEANER,
+            shift_date=today + timedelta(days=1),
+            start_time=time(6, 0),
+            end_time=time(10, 0),
+            role="Morning Clean",
+        ),
+        Shift(
+            site_id=sites[1].id,
+            assigned_user_id=supervisor.id,
+            staff_category=STAFF_CATEGORY_SUPERVISOR,
+            shift_date=today + timedelta(days=2),
+            start_time=time(8, 0),
+            end_time=time(16, 0),
+            role="Site Supervisor",
+        ),
+    ]
+    db.session.add_all(roster_shifts)
     db.session.commit()
 
     print("Seed data created:")

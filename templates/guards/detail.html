@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_icons.html" import icon_arrow_left, icon_users, icon_check_circle, icon_alert_triangle, icon_x_circle, icon_calendar %}
+{% from "_icons.html" import icon_arrow_left, icon_users, icon_check_circle, icon_alert_triangle, icon_x_circle, icon_calendar, icon_user_check, icon_invoice %}
 
 {% block title %}{{ guard.full_name }}{% endblock %}
 
@@ -22,6 +22,8 @@
     <section class="card" aria-labelledby="profile-heading">
       <h2 id="profile-heading">Profile details</h2>
       <dl>
+        <dt class="page-header__meta">Employee number</dt>
+        <dd>{{ guard.employee_number or 'Not provided' }}</dd>
         <dt class="page-header__meta">Email</dt>
         <dd>{{ guard.email or 'Not provided' }}</dd>
         <dt class="page-header__meta">Phone</dt>
@@ -45,6 +47,46 @@
           <span class="badge badge--expired">{{ icon_x_circle("icon icon--sm") }} Expired {{ -guard.sia_days_remaining }} days ago &mdash; not eligible for rostering</span>
         {% endif %}
       </p>
+    </section>
+  </div>
+
+  <div class="grid-2" style="margin-top: var(--space-5);">
+    <section class="card" aria-labelledby="banking-heading">
+      <h2 id="banking-heading">{{ icon_invoice("icon icon--sm") }} Bank details &amp; next of kin</h2>
+      <dl>
+        <dt class="page-header__meta">Bank account number</dt>
+        <dd>{{ guard.bank_account_number or 'Not provided' }}</dd>
+        <dt class="page-header__meta">Sort code</dt>
+        <dd>{{ guard.bank_sort_code or 'Not provided' }}</dd>
+        <dt class="page-header__meta">Next of kin</dt>
+        <dd>{{ guard.next_of_kin_name or 'Not provided' }}{% if guard.next_of_kin_relationship %} ({{ guard.next_of_kin_relationship }}){% endif %}</dd>
+        <dt class="page-header__meta">Next of kin contact</dt>
+        <dd>{{ guard.next_of_kin_contact or 'Not provided' }}</dd>
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="documents-heading">
+      <h2 id="documents-heading">{{ icon_user_check("icon icon--sm") }} Documents</h2>
+      <dl>
+        <dt class="page-header__meta">Profile picture</dt>
+        <dd>
+          {% if guard.profile_picture_filename %}
+            <a href="{{ url_for('static', filename='uploads/guards/' ~ guard.profile_picture_filename) }}" target="_blank" rel="noopener">
+              <img src="{{ url_for('static', filename='uploads/guards/' ~ guard.profile_picture_filename) }}" alt="{{ guard.full_name }} profile picture" style="max-width: 96px; max-height: 96px; border-radius: var(--radius-md, 8px); display: block;">
+            </a>
+          {% else %}
+            No profile picture uploaded.
+          {% endif %}
+        </dd>
+        <dt class="page-header__meta">SIA licence card scan</dt>
+        <dd>
+          {% if guard.sia_card_scan_filename %}
+            <a href="{{ url_for('static', filename='uploads/guards/' ~ guard.sia_card_scan_filename) }}" target="_blank" rel="noopener">View uploaded file</a>
+          {% else %}
+            No SIA licence scan uploaded.
+          {% endif %}
+        </dd>
+      </dl>
     </section>
   </div>
 

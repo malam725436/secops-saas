@@ -13,10 +13,17 @@
     </div>
   </div>
 
-  <form class="card" method="post" novalidate>
+  <form class="card" method="post" novalidate enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div class="form-grid">
+      <div class="field">
+        <label for="employee_number">Employee number</label>
+        <input type="text" id="employee_number" name="employee_number" autocomplete="off"
+               value="{{ form_data.get('employee_number', guard.employee_number if guard else '') }}">
+        <span class="helper-text">Internal HR reference. Must be unique if provided.</span>
+      </div>
+
       <div class="field">
         <label for="first_name">First name <span class="required-indicator" aria-hidden="true">*</span></label>
         <input type="text" id="first_name" name="first_name" required autocomplete="given-name"
@@ -79,6 +86,66 @@
         <label for="is_active">Guard is active and available for rostering</label>
       </div>
     {% endif %}
+
+    <h2 style="margin-top: var(--space-5);">Bank details</h2>
+    <p class="page-header__meta">For payroll BACS payments. Stored for HR/Compliance and Owner use only.</p>
+    <div class="form-grid">
+      <div class="field">
+        <label for="bank_account_number">Account number</label>
+        <input type="text" id="bank_account_number" name="bank_account_number" autocomplete="off" inputmode="numeric"
+               value="{{ form_data.get('bank_account_number', guard.bank_account_number if guard else '') }}">
+      </div>
+
+      <div class="field">
+        <label for="bank_sort_code">Sort code</label>
+        <input type="text" id="bank_sort_code" name="bank_sort_code" autocomplete="off" placeholder="00-00-00"
+               value="{{ form_data.get('bank_sort_code', guard.bank_sort_code if guard else '') }}">
+      </div>
+    </div>
+
+    <h2 style="margin-top: var(--space-5);">Next of kin</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label for="next_of_kin_name">Name</label>
+        <input type="text" id="next_of_kin_name" name="next_of_kin_name"
+               value="{{ form_data.get('next_of_kin_name', guard.next_of_kin_name if guard else '') }}">
+      </div>
+
+      <div class="field">
+        <label for="next_of_kin_relationship">Relationship</label>
+        <input type="text" id="next_of_kin_relationship" name="next_of_kin_relationship" placeholder="e.g. Spouse, Parent, Sibling"
+               value="{{ form_data.get('next_of_kin_relationship', guard.next_of_kin_relationship if guard else '') }}">
+      </div>
+
+      <div class="field">
+        <label for="next_of_kin_contact">Contact number</label>
+        <input type="tel" id="next_of_kin_contact" name="next_of_kin_contact"
+               value="{{ form_data.get('next_of_kin_contact', guard.next_of_kin_contact if guard else '') }}">
+      </div>
+    </div>
+
+    <h2 style="margin-top: var(--space-5);">Documents</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label for="profile_picture">Profile picture</label>
+        <input type="file" id="profile_picture" name="profile_picture" accept=".png,.jpg,.jpeg,.gif">
+        {% if guard and guard.profile_picture_filename %}
+          <span class="helper-text">Current file: {{ guard.profile_picture_filename }} &mdash; uploading a new file will replace it.</span>
+        {% else %}
+          <span class="helper-text">No profile picture on file.</span>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label for="sia_card_scan">SIA licence card scan</label>
+        <input type="file" id="sia_card_scan" name="sia_card_scan" accept=".png,.jpg,.jpeg,.gif,.pdf">
+        {% if guard and guard.sia_card_scan_filename %}
+          <span class="helper-text">Current file: {{ guard.sia_card_scan_filename }} &mdash; uploading a new file will replace it.</span>
+        {% else %}
+          <span class="helper-text">No SIA licence scan on file.</span>
+        {% endif %}
+      </div>
+    </div>
 
     <div class="btn-group" style="margin-top: var(--space-4);">
       <button type="submit" class="btn btn-primary">{{ 'Save changes' if guard else 'Add guard' }}</button>

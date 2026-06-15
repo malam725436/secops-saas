@@ -23,7 +23,7 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
-  {% from "_icons.html" import icon_shield, icon_layout, icon_users, icon_building, icon_invoice, icon_sun, icon_moon, icon_log_out, icon_user_check, icon_clock %}
+  {% from "_icons.html" import icon_shield, icon_layout, icon_users, icon_building, icon_invoice, icon_sun, icon_moon, icon_log_out, icon_user_check, icon_clock, icon_calendar %}
   <header class="app-header">
     <div class="app-header__inner">
       <a class="app-header__brand" href="{{ url_for('dashboard') }}">
@@ -45,6 +45,9 @@
           {% if current_user.role in ('owner', 'ops_manager', 'supervisor') %}
             <a href="{{ url_for('sites.list_sites') }}" {% if request.endpoint and request.endpoint.startswith('sites.') %}aria-current="page"{% endif %}>
               {{ icon_building() }} {{ t('nav.sites') }}
+            </a>
+            <a href="{{ url_for('roster.master') }}" {% if request.endpoint and request.endpoint.startswith('roster.') %}aria-current="page"{% endif %}>
+              {{ icon_calendar() }} {{ t('nav.roster') }}
             </a>
           {% endif %}
           {% if current_user.role in ('owner', 'ops_manager') %}

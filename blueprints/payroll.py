@@ -23,6 +23,7 @@ def _parse_date(value):
 
 def _eligible_shifts(period_start, period_end):
     return Shift.query.filter(
+        Shift.guard_id.isnot(None),
         Shift.status == "completed",
         Shift.approved_by_manager.is_(True),
         Shift.paid_out.is_(False),
@@ -44,11 +45,13 @@ def overview():
         guard_shifts = [s for s in shifts if s.guard_id == guard.id]
         if not guard_shifts:
             continue
+        guard_shifts.sort(key=lambda s: (s.shift_date, s.start_time))
         total_hours = round(sum(s.hours for s in guard_shifts), 2)
         pay_rate = float(guard.pay_rate)
         rows.append(
             {
                 "guard": guard,
+                "shifts": guard_shifts,
                 "total_hours": total_hours,
                 "pay_rate": pay_rate,
                 "total_pay": round(total_hours * pay_rate, 2),

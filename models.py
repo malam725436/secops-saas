@@ -51,6 +51,34 @@ MFA_REQUIRED_ROLES = set()
 # Inactivity timeout (GDPR safeguard for unattended office/control-room screens).
 SESSION_TIMEOUT_MINUTES = 15
 
+# Master Roster staff categories - drive the color-coded roster grid.
+STAFF_CATEGORY_GUARD = "guard"
+STAFF_CATEGORY_SUPERVISOR = "supervisor"
+STAFF_CATEGORY_CLEANER = "cleaner"
+STAFF_CATEGORY_RECEPTIONIST = "receptionist"
+
+STAFF_CATEGORY_LABELS = {
+    STAFF_CATEGORY_GUARD: "Guard",
+    STAFF_CATEGORY_SUPERVISOR: "Supervisor",
+    STAFF_CATEGORY_CLEANER: "Cleaner",
+    STAFF_CATEGORY_RECEPTIONIST: "Receptionist",
+}
+
+# CSS colour key for each category - see badge--cat-* in styles.css.
+STAFF_CATEGORY_COLORS = {
+    STAFF_CATEGORY_GUARD: "blue",
+    STAFF_CATEGORY_SUPERVISOR: "purple",
+    STAFF_CATEGORY_CLEANER: "green",
+    STAFF_CATEGORY_RECEPTIONIST: "yellow",
+}
+
+ROLE_TO_STAFF_CATEGORY = {
+    ROLE_GUARD: STAFF_CATEGORY_GUARD,
+    ROLE_SUPERVISOR: STAFF_CATEGORY_SUPERVISOR,
+    ROLE_CLEANER: STAFF_CATEGORY_CLEANER,
+    ROLE_RECEPTIONIST: STAFF_CATEGORY_RECEPTIONIST,
+}
+
 SIA_LICENSE_TYPES = [
     "Door Supervisor",
     "Security Guarding",
@@ -68,6 +96,7 @@ class Guard(db.Model):
     __tablename__ = "guards"
 
     id = db.Column(db.Integer, primary_key=True)
+    employee_number = db.Column(db.String(40), unique=True)
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120))
@@ -79,6 +108,17 @@ class Guard(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     pay_rate = db.Column(db.Numeric(8, 2), default=12.00, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Compliant Guard Vault: payroll and emergency-contact details.
+    bank_account_number = db.Column(db.String(20))
+    bank_sort_code = db.Column(db.String(10))
+    next_of_kin_name = db.Column(db.String(120))
+    next_of_kin_relationship = db.Column(db.String(80))
+    next_of_kin_contact = db.Column(db.String(30))
+
+    # Uploaded document filenames (stored under static/uploads/guards/).
+    profile_picture_filename = db.Column(db.String(255))
+    sia_card_scan_filename = db.Column(db.String(255))
 
     shifts = db.relationship("Shift", back_populates="guard")
 
@@ -123,7 +163,10 @@ class Site(db.Model):
         return [
             s
             for s in self.shifts
-            if s.status == "completed" and s.invoice_id is None and s.approved_by_manager
+            if s.guard_id is not None
+            and s.status == "completed"
+            and s.invoice_id is None
+            and s.approved_by_manager
         ]
 
 
@@ -132,13 +175,17 @@ class Shift(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     site_id = db.Column(db.Integer, db.ForeignKey("sites.id"), nullable=False)
-    guard_id = db.Column(db.Integer, db.ForeignKey("guards.id"), nullable=False)
+    guard_id = db.Column(db.Integer, db.ForeignKey("guards.id"), nullable=True)
+    # Master Roster: non-guard staff (supervisors/cleaners/receptionists) are
+    # scheduled via a linked User instead of a Guard profile.
+    assigned_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    staff_category = db.Column(db.String(20), default=STAFF_CATEGORY_GUARD, nullable=False)
     shift_date = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     role = db.Column(db.String(80))
-    pay_rate = db.Column(db.Numeric(8, 2), nullable=False)
-    bill_rate = db.Column(db.Numeric(8, 2), nullable=False)
+    pay_rate = db.Column(db.Numeric(8, 2), default=0, nullable=False)
+    bill_rate = db.Column(db.Numeric(8, 2), default=0, nullable=False)
     # scheduled -> completed -> invoiced
     status = db.Column(db.String(20), default="scheduled", nullable=False)
     invoice_id = db.Column(db.Integer, db.ForeignKey("invoices.id"), nullable=True)
@@ -157,6 +204,7 @@ class Shift(db.Model):
     site = db.relationship("Site", back_populates="shifts")
     guard = db.relationship("Guard", back_populates="shifts")
     invoice = db.relationship("Invoice", back_populates="shifts")
+    assigned_user = db.relationship("User", foreign_keys=[assigned_user_id])
 
     @property
     def hours(self):

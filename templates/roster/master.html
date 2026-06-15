@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon_calendar, icon_plus %}
+
+{% block title %}Master Roster{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>{{ icon_calendar("icon icon--lg") }} Master Roster</h1>
+      <p class="page-header__meta">{{ week_start.strftime('%d %b %Y') }} &ndash; {{ week_end.strftime('%d %b %Y') }}</p>
+    </div>
+    <div class="btn-group">
+      <a class="btn btn-secondary" href="{{ url_for('roster.master', week_start=prev_week) }}">&larr; Previous week</a>
+      <a class="btn btn-secondary" href="{{ url_for('roster.master') }}">This week</a>
+      <a class="btn btn-secondary" href="{{ url_for('roster.master', week_start=next_week) }}">Next week &rarr;</a>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: var(--space-4);">
+    <strong>Legend:</strong>
+    <span class="badge badge--cat-blue">Guards</span>
+    <span class="badge badge--cat-purple">Supervisors</span>
+    <span class="badge badge--cat-green">Cleaners</span>
+    <span class="badge badge--cat-yellow">Receptionists</span>
+  </div>
+
+  {% if grid %}
+    <div class="table-wrapper">
+      <table class="roster-grid">
+        <caption class="visually-hidden">Master roster for {{ week_start.strftime('%d %b %Y') }} to {{ week_end.strftime('%d %b %Y') }}</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="roster-grid__staff">Staff</th>
+            {% for day in days %}
+              <th scope="col" {% if day == today %}aria-current="date"{% endif %}>
+                {{ day.strftime('%a') }}<br>{{ day.strftime('%d %b') }}
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in grid %}
+            <tr>
+              <th scope="row" class="roster-grid__staff">
+                {{ entry.member.name }}<br>
+                <span class="badge badge--cat-{{ category_colors[entry.member.category] }}">{{ category_labels[entry.member.category] }}</span>
+              </th>
+              {% for cell in entry.cells %}
+                <td>
+                  {% for shift in cell %}
+                    <span class="roster-chip badge--cat-{{ category_colors[entry.member.category] }}">
+                      {{ shift.start_time.strftime('%H:%M') }}&ndash;{{ shift.end_time.strftime('%H:%M') }}
+                      &middot; {{ shift.site.name }}{% if shift.role %} ({{ shift.role }}){% endif %}
+                      {% if shift.status != 'invoiced' %}
+                        <form method="post" action="{{ url_for('roster.delete', shift_id=shift.id) }}"
+                              data-confirm="Remove this roster entry for {{ entry.member.name }} on {{ shift.shift_date.strftime('%d %b %Y') }}?">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <input type="hidden" name="week_start" value="{{ week_start.isoformat() }}">
+                          <button type="submit" class="roster-chip__delete" aria-label="Remove this shift">&times;</button>
+                        </form>
+                      {% endif %}
+                    </span>
+                  {% endfor %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card empty-state">
+      {{ icon_calendar() }}
+      <p>No active guards or frontline staff available to roster.</p>
+    </div>
+  {% endif %}
+
+  <section class="card" aria-labelledby="assign-heading" style="margin-top: var(--space-5);">
+    <h2 id="assign-heading">{{ icon_plus("icon icon--sm") }} Assign to roster</h2>
+
+    {% if not sites %}
+      <p>No active sites available. Add a site first.</p>
+    {% else %}
+      <form method="post" action="{{ url_for('roster.assign') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="week_start" value="{{ week_start.isoformat() }}">
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="staff">Staff member <span class="required-indicator" aria-hidden="true">*</span></label>
+            <select id="staff" name="staff" required>
+              <optgroup label="Guards">
+                {% for member in staff if member.category == 'guard' %}
+                  <option value="guard:{{ member.id }}">{{ member.name }}</option>
+                {% endfor %}
+              </optgroup>
+              <optgroup label="Supervisors">
+                {% for member in staff if member.category == 'supervisor' %}
+                  <option value="user:{{ member.id }}">{{ member.name }}</option>
+                {% endfor %}
+              </optgroup>
+              <optgroup label="Cleaners">
+                {% for member in staff if member.category == 'cleaner' %}
+                  <option value="user:{{ member.id }}">{{ member.name }}</option>
+                {% endfor %}
+              </optgroup>
+              <optgroup label="Receptionists">
+                {% for member in staff if member.category == 'receptionist' %}
+                  <option value="user:{{ member.id }}">{{ member.name }}</option>
+                {% endfor %}
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="site_id">Site <span class="required-indicator" aria-hidden="true">*</span></label>
+            <select id="site_id" name="site_id" required>
+              {% for site in sites %}
+                <option value="{{ site.id }}">{{ site.name }} &mdash; {{ site.client_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="shift_date">Date <span class="required-indicator" aria-hidden="true">*</span></label>
+            <input type="date" id="shift_date" name="shift_date" required value="{{ today.isoformat() }}">
+          </div>
+
+          <div class="field">
+            <label for="start_time">Start time <span class="required-indicator" aria-hidden="true">*</span></label>
+            <input type="time" id="start_time" name="start_time" required value="08:00">
+          </div>
+
+          <div class="field">
+            <label for="end_time">End time <span class="required-indicator" aria-hidden="true">*</span></label>
+            <input type="time" id="end_time" name="end_time" required value="20:00">
+          </div>
+
+          <div class="field">
+            <label for="role">Role / post</label>
+            <input type="text" id="role" name="role" placeholder="e.g. Front of House, Night Patrol">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">{{ icon_plus("icon icon--sm") }} Assign to roster</button>
+      </form>
+    {% endif %}
+  </section>
+{% endblock %}
