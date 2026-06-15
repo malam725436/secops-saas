@@ -1,7 +1,20 @@
 from datetime import datetime
+from io import BytesIO
 
-from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    HRFlowable,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 from extensions import db
 from models import FINANCE_ROLES, Invoice, Shift, Site
@@ -193,3 +206,169 @@ def mark_paid(invoice_id):
     db.session.commit()
     flash(f"Invoice {invoice.invoice_number} marked as paid.", "success")
     return redirect(url_for("invoices.detail", invoice_id=invoice.id))
+
+
+# ---------------------------------------------------------------------------
+# Brand colours (mirror CSS tokens so the PDF matches the web UI)
+# ---------------------------------------------------------------------------
+_GREEN_DARK = colors.HexColor("#14532D")
+_GREEN_SOFT = colors.HexColor("#DCFCE7")
+_SLATE = colors.HexColor("#0F172A")
+_MUTED = colors.HexColor("#334155")
+_BORDER = colors.HexColor("#E2E8F0")
+_WHITE = colors.white
+
+
+def _build_invoice_pdf(invoice):
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        leftMargin=20 * mm,
+        rightMargin=20 * mm,
+        topMargin=20 * mm,
+        bottomMargin=20 * mm,
+    )
+
+    base = getSampleStyleSheet()
+    h1 = ParagraphStyle("h1", parent=base["Normal"], fontSize=20, leading=26,
+                         textColor=_SLATE, fontName="Helvetica-Bold")
+    h2 = ParagraphStyle("h2", parent=base["Normal"], fontSize=11, leading=15,
+                         textColor=_GREEN_DARK, fontName="Helvetica-Bold",
+                         spaceBefore=10)
+    meta = ParagraphStyle("meta", parent=base["Normal"], fontSize=9, leading=13,
+                           textColor=_MUTED)
+    body = ParagraphStyle("body", parent=base["Normal"], fontSize=10, leading=14,
+                           textColor=_SLATE)
+
+    shifts = sorted(invoice.shifts, key=lambda s: (s.shift_date, s.start_time))
+    story = []
+
+    # --- Header band ---
+    header_data = [[
+        Paragraph(invoice.invoice_number, h1),
+        Paragraph(
+            f"{invoice.site.name}<br/><font color='#{_MUTED.hexval()[2:]}' size=9>"
+            f"{invoice.site.client_name}</font>",
+            body,
+        ),
+    ]]
+    header_table = Table(header_data, colWidths=["55%", "45%"])
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 4 * mm))
+    story.append(HRFlowable(width="100%", thickness=2, color=_GREEN_DARK))
+    story.append(Spacer(1, 5 * mm))
+
+    # --- Meta grid (period / issue date / status) ---
+    period = (f"{invoice.period_start.strftime('%d %b %Y')} "
+              f"– {invoice.period_end.strftime('%d %b %Y')}")
+    meta_data = [
+        [Paragraph("Billing period", meta), Paragraph(period, body),
+         Paragraph("Issue date", meta),
+         Paragraph(invoice.issue_date.strftime("%d %b %Y"), body)],
+        [Paragraph("Client", meta), Paragraph(invoice.site.client_name, body),
+         Paragraph("Status", meta), Paragraph(invoice.status.capitalize(), body)],
+        [Paragraph("Site", meta), Paragraph(invoice.site.name, body), "", ""],
+    ]
+    meta_table = Table(meta_data, colWidths=["18%", "32%", "18%", "32%"])
+    meta_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 6 * mm))
+
+    # --- Line items table ---
+    story.append(Paragraph("Shift line items", h2))
+    story.append(Spacer(1, 3 * mm))
+
+    col_headers = ["Date", "Guard", "Role", "Start", "Finish", "Hours", "Rate (£/hr)", "Amount"]
+    rows = [col_headers]
+    for s in shifts:
+        rows.append([
+            s.shift_date.strftime("%d %b %Y"),
+            s.guard.full_name,
+            s.role or "—",
+            s.start_time.strftime("%H:%M"),
+            s.end_time.strftime("%H:%M"),
+            f"{s.hours:.2f}",
+            f"£{float(s.bill_rate):.2f}",
+            f"£{s.bill_amount:.2f}",
+        ])
+    # Totals footer
+    total_hours = sum(s.hours for s in shifts)
+    rows.append(["", "", "", "", "", f"{total_hours:.2f}", "Total",
+                 f"£{float(invoice.total_amount):.2f}"])
+
+    col_w = [25 * mm, 32 * mm, 22 * mm, 14 * mm, 14 * mm, 14 * mm, 21 * mm, 21 * mm]
+    items_table = Table(rows, colWidths=col_w, repeatRows=1)
+    n = len(rows)
+    items_table.setStyle(TableStyle([
+        # Header row
+        ("BACKGROUND", (0, 0), (-1, 0), _GREEN_DARK),
+        ("TEXTCOLOR", (0, 0), (-1, 0), _WHITE),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("TOPPADDING", (0, 0), (-1, 0), 6),
+        # Body rows
+        ("FONTNAME", (0, 1), (-1, n - 2), "Helvetica"),
+        ("FONTSIZE", (0, 1), (-1, n - 2), 9),
+        ("ROWBACKGROUNDS", (0, 1), (-1, n - 2), [_WHITE, _GREEN_SOFT]),
+        ("BOTTOMPADDING", (0, 1), (-1, n - 2), 5),
+        ("TOPPADDING", (0, 1), (-1, n - 2), 5),
+        # Totals row
+        ("BACKGROUND", (0, n - 1), (-1, n - 1), _GREEN_SOFT),
+        ("FONTNAME", (0, n - 1), (-1, n - 1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, n - 1), (-1, n - 1), 9),
+        ("TOPPADDING", (0, n - 1), (-1, n - 1), 6),
+        ("BOTTOMPADDING", (0, n - 1), (-1, n - 1), 6),
+        # Right-align numeric columns
+        ("ALIGN", (5, 0), (-1, -1), "RIGHT"),
+        # Grid
+        ("GRID", (0, 0), (-1, -1), 0.5, _BORDER),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(items_table)
+    story.append(Spacer(1, 8 * mm))
+
+    # --- Amount due callout ---
+    amount_data = [[
+        Paragraph("Total amount due", meta),
+        Paragraph(f"£{float(invoice.total_amount):.2f}",
+                  ParagraphStyle("amt", parent=base["Normal"], fontSize=18,
+                                 leading=22, fontName="Helvetica-Bold",
+                                 textColor=_GREEN_DARK, alignment=2)),
+    ]]
+    amount_table = Table(amount_data, colWidths=["60%", "40%"])
+    amount_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("BACKGROUND", (0, 0), (-1, -1), _GREEN_SOFT),
+        ("ROUNDEDCORNERS", (0, 0), (-1, -1), [6, 6, 6, 6]),
+    ]))
+    story.append(amount_table)
+
+    doc.build(story)
+    buf.seek(0)
+    return buf
+
+
+@invoices_bp.route("/<int:invoice_id>/download")
+def download(invoice_id):
+    invoice = Invoice.query.get_or_404(invoice_id)
+    pdf_buf = _build_invoice_pdf(invoice)
+    filename = f"{invoice.invoice_number}.pdf"
+    return send_file(
+        pdf_buf,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+    )

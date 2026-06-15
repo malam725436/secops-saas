@@ -15,20 +15,21 @@
       </p>
     </div>
     <div class="btn-group">
+      <a class="btn btn-secondary" href="{{ url_for('invoices.download', invoice_id=invoice.id) }}">&#8615; Download PDF</a>
       {% if invoice.status == 'draft' %}
         <form method="post" action="{{ url_for('invoices.mark_approved', invoice_id=invoice.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-secondary">{{ icon_check_circle("icon icon--sm") }} Approve</button>
+          <button type="submit" class="btn btn-primary">{{ icon_check_circle("icon icon--sm") }} Approve</button>
         </form>
       {% elif invoice.status == 'approved' %}
         <form method="post" action="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-secondary">Mark as sent</button>
+          <button type="submit" class="btn btn-primary">Mark as sent</button>
         </form>
       {% elif invoice.status == 'sent' %}
         <form method="post" action="{{ url_for('invoices.mark_paid', invoice_id=invoice.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-secondary">{{ icon_check_circle("icon icon--sm") }} Mark as paid</button>
+          <button type="submit" class="btn btn-primary">{{ icon_check_circle("icon icon--sm") }} Mark as paid</button>
         </form>
       {% endif %}
     </div>
