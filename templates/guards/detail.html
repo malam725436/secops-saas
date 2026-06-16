@@ -40,11 +40,11 @@
       <p><strong>Expiry date:</strong> {{ guard.sia_expiry_date.strftime('%d %b %Y') }}</p>
       <p>
         {% if guard.sia_status == 'valid' %}
-          <span class="badge badge--valid">{{ icon_check_circle("icon icon--sm") }} Valid &mdash; {{ guard.sia_days_remaining }} days remaining</span>
-        {% elif guard.sia_status == 'expiring' %}
-          <span class="badge badge--expiring">{{ icon_alert_triangle("icon icon--sm") }} Expires in {{ guard.sia_days_remaining }} days &mdash; renewal required</span>
+          <span class="badge badge--success">{{ icon_check_circle("icon icon--sm") }} Active &mdash; {{ guard.sia_days_remaining }} days remaining</span>
+        {% elif guard.sia_status == 'warning' %}
+          <span class="badge badge--warning">{{ icon_alert_triangle("icon icon--sm") }} Expires Soon &mdash; {{ guard.sia_days_remaining }} days remaining</span>
         {% else %}
-          <span class="badge badge--expired">{{ icon_x_circle("icon icon--sm") }} Expired {{ -guard.sia_days_remaining }} days ago &mdash; not eligible for rostering</span>
+          <span class="badge badge--danger">{{ icon_x_circle("icon icon--sm") }} Expired &mdash; not eligible for rostering</span>
         {% endif %}
       </p>
     </section>
