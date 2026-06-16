@@ -132,12 +132,11 @@ class Guard(db.Model):
 
     @property
     def sia_status(self):
-        """One of 'expired', 'expiring', 'valid' - drives the compliance badge."""
         days = self.sia_days_remaining
         if days < 0:
             return "expired"
         if days <= SIA_EXPIRY_WARNING_DAYS:
-            return "expiring"
+            return "warning"
         return "valid"
 
 

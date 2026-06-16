@@ -571,6 +571,7 @@ textarea:focus-visible,
 }
 
 .badge--valid,
+.badge--success,
 .badge--completed,
 .badge--paid,
 .badge--approved,
@@ -579,6 +580,7 @@ textarea:focus-visible,
   color: var(--status-valid-fg);
 }
 
+.badge--warning,
 .badge--expiring,
 .badge--sent,
 .badge--pending {
@@ -586,6 +588,7 @@ textarea:focus-visible,
   color: var(--status-warning-fg);
 }
 
+.badge--danger,
 .badge--expired {
   background: var(--status-danger-bg);
   color: var(--status-danger-fg);

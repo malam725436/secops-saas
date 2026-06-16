@@ -49,12 +49,12 @@ def list_guards():
     status_filter = request.args.get("status", "all")
     guards = Guard.query.order_by(Guard.sia_expiry_date.asc()).all()
 
-    if status_filter in ("valid", "expiring", "expired"):
+    if status_filter in ("valid", "warning", "expired"):
         guards = [g for g in guards if g.sia_status == status_filter]
 
     summary = {
         "total": Guard.query.count(),
-        "expiring": sum(1 for g in Guard.query.all() if g.sia_status == "expiring"),
+        "expiring": sum(1 for g in Guard.query.all() if g.sia_status == "warning"),
         "expired": sum(1 for g in Guard.query.all() if g.sia_status == "expired"),
     }
 
