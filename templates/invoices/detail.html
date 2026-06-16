@@ -8,14 +8,19 @@
 
   <div class="page-header">
     <div>
-      <h1>{{ icon_invoice("icon icon--lg") }} {{ invoice.invoice_number }}</h1>
+      <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-1);">
+        <h1>{{ icon_invoice("icon icon--lg") }} {{ invoice.invoice_number }}</h1>
+        <a class="btn btn-primary" href="{{ url_for('invoices.download', invoice_id=invoice.id) }}">
+          &#8615; Download PDF
+        </a>
+      </div>
       <p class="page-header__meta">
         {{ invoice.site.name }} &mdash; {{ invoice.site.client_name }}
         &middot; <span class="badge badge--{{ invoice.status }}">{{ invoice.status|capitalize }}</span>
       </p>
     </div>
+
     <div class="btn-group">
-      <a class="btn btn-secondary" href="{{ url_for('invoices.download', invoice_id=invoice.id) }}">&#8615; Download PDF</a>
       {% if invoice.status == 'draft' %}
         <form method="post" action="{{ url_for('invoices.mark_approved', invoice_id=invoice.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
