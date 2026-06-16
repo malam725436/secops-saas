@@ -10,9 +10,9 @@
     <div>
       <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-1);">
         <h1>{{ icon_invoice("icon icon--lg") }} {{ invoice.invoice_number }}</h1>
-        <a class="btn btn-primary" href="{{ url_for('invoices.download', invoice_id=invoice.id) }}">
-          &#8615; Download PDF
-        </a>
+        <a class="btn btn-primary" href="#" onclick="window.print(); return false;">
+  &#8615; Download PDF
+</a>
       </div>
       <p class="page-header__meta">
         {{ invoice.site.name }} &mdash; {{ invoice.site.client_name }}
@@ -106,4 +106,35 @@
       </table>
     </div>
   </section>
+  <style>
+<style>
+@media print {
+  /* Hide top navigation, sidebar, and action buttons entirely from the PDF */
+  .sidebar, 
+  .nav, 
+  header,
+  .breadcrumb-link,
+  .btn,
+  .btn-group,
+  iframe {
+    display: none !important;
+  }
+  
+  /* Force the main invoice card content to take up the full page width */
+  main, 
+  .content,
+  .page-header {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Clean up card formatting for a professional white-paper print look */
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+}
+</style>
 {% endblock %}
