@@ -29,7 +29,10 @@
         <input type="date" id="period_end" name="period_end" value="{{ period_end.isoformat() }}">
       </div>
     </div>
-    <button type="submit" class="btn btn-secondary">Update period</button>
+    <div class="invoice-hero__actions invoice-hero__actions--stacked">
+      <button type="submit" class="btn btn-secondary">Update period</button>
+      <a class="btn btn-primary" href="{{ url_for('payroll.export_csv', period_start=period_start.isoformat(), period_end=period_end.isoformat()) }}">Export to CSV</a>
+    </div>
   </form>
 
   {% if rows %}

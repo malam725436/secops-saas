@@ -222,6 +222,15 @@ class Shift(db.Model):
     approved_by_manager = db.Column(db.Boolean, default=False, nullable=False)
     paid_out = db.Column(db.Boolean, default=False, nullable=False)
 
+    # Runtime payroll calculation fields used by the payroll overview/export.
+    active_pay_rate = db.Column(db.Numeric(8, 2), nullable=True)
+    pay_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    premium_multiplier = db.Column(db.Numeric(4, 2), nullable=True)
+    premium_reason = db.Column(db.String(40), nullable=True)
+    regular_hours = db.Column(db.Numeric(6, 2), nullable=True)
+    overtime_hours = db.Column(db.Numeric(6, 2), nullable=True)
+    holiday_hours = db.Column(db.Numeric(6, 2), nullable=True)
+
     site = db.relationship("Site", back_populates="shifts")
     guard = db.relationship("Guard", back_populates="shifts")
     invoice = db.relationship("Invoice", back_populates="shifts")
@@ -255,7 +264,7 @@ class Shift(db.Model):
         return start_a < end_b and start_b < end_a
 
     @property
-    def pay_amount(self):
+    def base_pay_amount(self):
         return round(float(self.pay_rate) * self.hours, 2)
 
     @property
