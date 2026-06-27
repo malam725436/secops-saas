@@ -18,7 +18,7 @@ from reportlab.platypus import (
 )
 
 from extensions import db, mail
-from models import FINANCE_ROLES, Invoice, Shift, Site
+from models import FINANCE_ROLES, Invoice, Setting, Shift, Site
 
 invoices_bp = Blueprint("invoices", __name__, url_prefix="/invoices")
 
@@ -369,6 +369,28 @@ def _build_invoice_pdf(invoice):
     return buf
 
 
+def _load_mail_config_from_db():
+    """Apply stored mail settings to the live app config before sending."""
+    rows = Setting.query.filter(
+        Setting.key.in_([
+            "MAIL_SERVER", "MAIL_PORT", "MAIL_USE_TLS",
+            "MAIL_USERNAME", "MAIL_PASSWORD", "MAIL_DEFAULT_SENDER",
+        ])
+    ).all()
+    for row in rows:
+        if not row.value:
+            continue
+        if row.key == "MAIL_PORT":
+            try:
+                current_app.config[row.key] = int(row.value)
+            except (ValueError, TypeError):
+                pass
+        elif row.key == "MAIL_USE_TLS":
+            current_app.config[row.key] = str(row.value).lower() in {"1", "true", "yes", "on"}
+        else:
+            current_app.config[row.key] = row.value
+
+
 def _invoice_pdf_attachment(invoice):
     pdf_buf = _build_invoice_pdf(invoice)
     pdf_buf.seek(0)
@@ -417,6 +439,7 @@ def email_invoice(invoice_id):
         ),
     )
     msg.attach(filename, "application/pdf", pdf_buf.getvalue())
+    _load_mail_config_from_db()
     mail.send(msg)
 
     invoice.status = "sent"
