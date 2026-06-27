@@ -31,7 +31,7 @@ def _executive_metrics(sites):
     total_payroll = round(
         sum(shift.pay_amount or 0 for shift in Shift.query.filter(Shift.guard_id.isnot(None)).all()), 2
     )
-    net_profit = round(total_revenue - total_payroll, 2)
+    net_profit = round(float(total_revenue) - float(total_payroll), 2)
     profit_margin = round((net_profit / total_revenue) * 100, 1) if total_revenue else 0.0
 
     week_start, week_end = _current_week_range()

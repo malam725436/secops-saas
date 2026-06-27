@@ -440,6 +440,20 @@ def email_invoice(invoice_id):
     )
     msg.attach(filename, "application/pdf", pdf_buf.getvalue())
     _load_mail_config_from_db()
+    _mail_settings = {
+        row.key: row.value
+        for row in Setting.query.filter(
+            Setting.key.in_(["MAIL_SERVER", "MAIL_PORT", "MAIL_USE_TLS", "MAIL_USERNAME", "MAIL_PASSWORD"])
+        ).all()
+    }
+    if _mail_settings:
+        _ms = current_app.extensions["mail"]
+        _ms.server = _mail_settings.get("MAIL_SERVER", _ms.server)
+        _ms.port = int(_mail_settings.get("MAIL_PORT", _ms.port))
+        _ms.use_tls = str(_mail_settings.get("MAIL_USE_TLS", "false")).lower() in {"1", "true", "yes", "on"}
+        _ms.username = _mail_settings.get("MAIL_USERNAME", _ms.username)
+        _ms.password = _mail_settings.get("MAIL_PASSWORD", _ms.password)
+    print(f"Connecting to {current_app.extensions['mail'].server}:{current_app.extensions['mail'].port}")
     mail.send(msg)
 
     invoice.status = "sent"
