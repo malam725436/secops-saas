@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from extensions import db
+from extensions import db, mail
 from models import PAYROLL_ROLES, Setting
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
@@ -55,11 +55,18 @@ def overview():
                 db.session.add(Setting(key=key, value=str_value))
             else:
                 row.value = str_value
-            # Reflect into running app config immediately so Flask-Mail picks
-            # up the new values for this request cycle and beyond.
+            # Mirror into the running config so other config readers see the
+            # new value within this request cycle.
             current_app.config[key] = _coerce(key, str_value)
 
         db.session.commit()
+
+        # Flask-Mail snapshots its config into app.extensions["mail"] at
+        # init time and reads from that snapshot (not app.config) on every
+        # send. Updating the config alone is therefore not enough -- rebuild
+        # the mail state so outbound email uses the just-saved credentials.
+        mail.init_app(current_app._get_current_object())
+
         flash("Mail settings saved successfully.", "success")
         return redirect(url_for("settings.overview"))
 

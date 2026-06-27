@@ -215,6 +215,12 @@ def create_app():
             elif key in app.config:
                 continue
 
+        # Flask-Mail snapshots its config at init time, so syncing app.config
+        # above is not enough -- rebuild the mail state from the freshly loaded
+        # settings so sends use the DB-backed config even after a restart or in
+        # a worker process that never handled the settings form submission.
+        mail.init_app(app)
+
     @app.context_processor
     def inject_now():
         language = current_user.language if current_user.is_authenticated else "en"

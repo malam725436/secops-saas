@@ -1,52 +1,82 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon_settings, icon_check_circle %}
 {% block title %}Settings{% endblock %}
 
 {% block content %}
-  <section class="card">
+  <div class="page-header">
+    <div>
+      <h1>System settings</h1>
+      <p class="page-header__meta">Configure live mail delivery for invoices and notifications.</p>
+    </div>
+  </div>
+
+  <section class="card" aria-labelledby="mail-settings-heading">
     <div class="card__header">
-      <div>
-        <h1>System settings</h1>
-        <p class="page-header__meta">Configure live mail delivery settings for invoices and notifications.</p>
-      </div>
+      <h2 id="mail-settings-heading">{{ icon_settings("icon icon--sm") }} Mail delivery</h2>
+      <span class="page-header__meta">These credentials are used to send outbound email.</span>
     </div>
 
-    <form method="post">
+    <form method="post" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <div class="form-grid">
         <div class="field">
           <label for="MAIL_SERVER">Mail server</label>
-          <input type="text" id="MAIL_SERVER" name="MAIL_SERVER" value="{{ settings.get('MAIL_SERVER', '') }}">
+          <input type="text" id="MAIL_SERVER" name="MAIL_SERVER"
+                 value="{{ settings.get('MAIL_SERVER', '') }}"
+                 placeholder="smtp.example.com" autocomplete="off">
+          <span class="helper-text">SMTP host used to relay outbound mail.</span>
         </div>
+
         <div class="field">
           <label for="MAIL_PORT">Mail port</label>
-          <input type="number" id="MAIL_PORT" name="MAIL_PORT" value="{{ settings.get('MAIL_PORT', '') }}">
+          <input type="number" id="MAIL_PORT" name="MAIL_PORT"
+                 value="{{ settings.get('MAIL_PORT', '') }}"
+                 placeholder="587" min="1" max="65535">
+          <span class="helper-text">Typically 587 for TLS or 465 for SSL.</span>
         </div>
+
         <div class="field">
           <label for="MAIL_USERNAME">Username</label>
-          <input type="text" id="MAIL_USERNAME" name="MAIL_USERNAME" value="{{ settings.get('MAIL_USERNAME', '') }}">
+          <input type="text" id="MAIL_USERNAME" name="MAIL_USERNAME"
+                 value="{{ settings.get('MAIL_USERNAME', '') }}"
+                 placeholder="mailer@example.com" autocomplete="off">
         </div>
+
         <div class="field">
           <label for="MAIL_PASSWORD">Password</label>
-          <input type="password" id="MAIL_PASSWORD" name="MAIL_PASSWORD" value="{{ settings.get('MAIL_PASSWORD', '') }}">
+          <input type="password" id="MAIL_PASSWORD" name="MAIL_PASSWORD"
+                 value="{{ settings.get('MAIL_PASSWORD', '') }}"
+                 placeholder="••••••••" autocomplete="new-password">
+          <span class="helper-text">Stored securely; leave unchanged to keep the current password.</span>
         </div>
+
         <div class="field">
           <label for="MAIL_DEFAULT_SENDER">Default sender</label>
-          <input type="email" id="MAIL_DEFAULT_SENDER" name="MAIL_DEFAULT_SENDER" value="{{ settings.get('MAIL_DEFAULT_SENDER', '') }}">
+          <input type="email" id="MAIL_DEFAULT_SENDER" name="MAIL_DEFAULT_SENDER"
+                 value="{{ settings.get('MAIL_DEFAULT_SENDER', '') }}"
+                 placeholder="no-reply@example.com">
         </div>
+
         <div class="field">
           <label for="INVOICE_EMAIL_RECIPIENT">Invoice recipient</label>
-          <input type="email" id="INVOICE_EMAIL_RECIPIENT" name="INVOICE_EMAIL_RECIPIENT" value="{{ settings.get('INVOICE_EMAIL_RECIPIENT', '') }}">
+          <input type="email" id="INVOICE_EMAIL_RECIPIENT" name="INVOICE_EMAIL_RECIPIENT"
+                 value="{{ settings.get('INVOICE_EMAIL_RECIPIENT', '') }}"
+                 placeholder="billing@example.com">
         </div>
       </div>
 
-      <div class="field">
-        <label class="checkbox">
-          <input type="checkbox" name="MAIL_USE_TLS" {% if settings.get('MAIL_USE_TLS', '0') in ['1', 'true', 'True', 'on'] %}checked{% endif %}>
-          <span>Use TLS</span>
-        </label>
+      <div class="checkbox-field">
+        <input type="checkbox" id="MAIL_USE_TLS" name="MAIL_USE_TLS"
+               {% if settings.get('MAIL_USE_TLS', '0') in ['1', 'true', 'True', 'on'] %}checked{% endif %}>
+        <label for="MAIL_USE_TLS">Use TLS encryption</label>
       </div>
 
-      <button type="submit" class="btn btn-primary">Save settings</button>
+      <div class="btn-group" style="margin-top: var(--space-4);">
+        <button type="submit" class="btn btn-primary">
+          {{ icon_check_circle("icon icon--sm") }} Save settings
+        </button>
+      </div>
     </form>
   </section>
 {% endblock %}
