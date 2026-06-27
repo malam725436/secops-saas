@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required, current_user
@@ -42,7 +42,7 @@ def _parse_time(value):
 
 def _week_start(value):
     parsed = _parse_date(value)
-    today = datetime.utcnow().date()
+    today = datetime.now(UTC).date()
     base = parsed or today
     return base - timedelta(days=base.weekday())
 
@@ -106,7 +106,7 @@ def master():
         staff=staff,
         prev_week=(week_start - timedelta(days=7)).isoformat(),
         next_week=(week_start + timedelta(days=7)).isoformat(),
-        today=datetime.utcnow().date(),
+        today=datetime.now(UTC).date(),
         category_labels=STAFF_CATEGORY_LABELS,
         category_colors=STAFF_CATEGORY_COLORS,
     )

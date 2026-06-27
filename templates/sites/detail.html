@@ -129,7 +129,13 @@
             {% for shift in roster %}
               <tr>
                 <td>{{ shift.shift_date.strftime('%d %b %Y') }}</td>
-                <td><a href="{{ url_for('guards.detail', guard_id=shift.guard_id) }}">{{ shift.guard.full_name }}</a></td>
+                <td>
+                  {% if shift.guard_id and shift.guard %}
+                    <a href="{{ url_for('guards.detail', guard_id=shift.guard_id) }}">{{ shift.guard.full_name }}</a>
+                  {% else %}
+                    {{ shift.guard.full_name if shift.guard else 'Unknown guard' }}
+                  {% endif %}
+                </td>
                 <td>{{ shift.start_time.strftime('%H:%M') }}&ndash;{{ shift.end_time.strftime('%H:%M') }}</td>
                 <td>{{ shift.role or '—' }}</td>
                 <td class="numeric">{{ shift.hours }}</td>

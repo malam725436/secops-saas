@@ -11,7 +11,87 @@
     </div>
   </div>
 
+  <section class="card" aria-labelledby="quick-actions-heading">
+    <div class="card__header">
+      <h2 id="quick-actions-heading">Quick actions</h2>
+    </div>
+    <div class="stat-grid">
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_invoice() }} Invoicing</p>
+        <p class="stat-card__value">Generate or review invoices</p>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('invoices.list_invoices') }}">Open invoicing</a>
+      </div>
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_wallet() }} Payroll</p>
+        <p class="stat-card__value">Approve payouts and view payroll</p>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('payroll.overview') }}">Open payroll</a>
+      </div>
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_calendar() }} Roster</p>
+        <p class="stat-card__value">Manage schedules and shifts</p>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('roster.master') }}">Open roster</a>
+      </div>
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_users() }} Guard vault</p>
+        <p class="stat-card__value">Review guard profiles and licences</p>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('guards.list_guards') }}">Open guard vault</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="recent-activity-heading">
+    <div class="card__header">
+      <h2 id="recent-activity-heading">Recent system activity</h2>
+      <span class="page-header__meta">Latest audit log entries</span>
+    </div>
+    {% if recent_activities %}
+      <div class="table-wrapper">
+        <table>
+          <caption class="visually-hidden">Recent system audit log entries</caption>
+          <thead>
+            <tr>
+              <th scope="col">When</th>
+              <th scope="col">User</th>
+              <th scope="col">Action</th>
+              <th scope="col">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for activity in recent_activities %}
+              <tr>
+                <td>{{ activity.timestamp.strftime('%d %b %Y %H:%M') }}</td>
+                <td>{{ activity.user.name if activity.user else 'System' }}</td>
+                <td>{{ activity.action }}</td>
+                <td>{{ activity.details or '-' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        {{ icon_check_circle() }}
+        <p>No system activity has been recorded yet.</p>
+      </div>
+    {% endif %}
+  </section>
+
   {% if metrics %}
+    <div class="stat-grid">
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_users() }} Active guards this week</p>
+        <p class="stat-card__value">{{ metrics.active_guards_this_week }}</p>
+      </div>
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_calendar() }} Approved hours awaiting payout</p>
+        <p class="stat-card__value">{{ '{:,.2f}'.format(metrics.approved_hours_awaiting_payout) }}</p>
+      </div>
+      <div class="card stat-card">
+        <p class="stat-card__label">{{ icon_wallet() }} Estimated weekly payroll</p>
+        <p class="stat-card__value">£{{ '{:,.2f}'.format(metrics.estimated_weekly_payroll_liability) }}</p>
+      </div>
+    </div>
+
     <div class="stat-grid">
       <div class="card stat-card">
         <p class="stat-card__label">{{ icon_trending_up("icon icon--sm") }} Total revenue</p>

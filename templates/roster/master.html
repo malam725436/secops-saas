@@ -4,70 +4,87 @@
 {% block title %}Master Roster{% endblock %}
 
 {% block content %}
-  <div class="page-header">
-    <div>
-      <h1>{{ icon_calendar("icon icon--lg") }} Master Roster</h1>
-      <p class="page-header__meta">{{ week_start.strftime('%d %b %Y') }} &ndash; {{ week_end.strftime('%d %b %Y') }}</p>
+  <section class="card roster-hero">
+    <div class="roster-hero__content">
+      <p class="invoice-hero__eyebrow">{{ icon_calendar("icon icon--sm") }} Weekly operations</p>
+      <h1>Master Roster</h1>
+      <p class="page-header__meta">Plan staffing coverage for the week and keep shifts visible at a glance.</p>
     </div>
-    <div class="btn-group">
+    <div class="roster-hero__actions">
       <a class="btn btn-secondary" href="{{ url_for('roster.master', week_start=prev_week) }}">&larr; Previous week</a>
       <a class="btn btn-secondary" href="{{ url_for('roster.master') }}">This week</a>
       <a class="btn btn-secondary" href="{{ url_for('roster.master', week_start=next_week) }}">Next week &rarr;</a>
     </div>
-  </div>
+  </section>
 
-  <div class="card" style="margin-bottom: var(--space-4);">
-    <strong>Legend:</strong>
-    <span class="badge badge--cat-blue">Guards</span>
-    <span class="badge badge--cat-purple">Supervisors</span>
-    <span class="badge badge--cat-green">Cleaners</span>
-    <span class="badge badge--cat-yellow">Receptionists</span>
-  </div>
+  <section class="card roster-legend" aria-label="Roster legend">
+    <div class="card__header">
+      <div>
+        <h2>Coverage legend</h2>
+        <p class="page-header__meta">Colour-coded staff types help you scan the roster quickly.</p>
+      </div>
+    </div>
+    <div class="roster-legend__items">
+      <span class="badge badge--cat-blue">Guards</span>
+      <span class="badge badge--cat-purple">Supervisors</span>
+      <span class="badge badge--cat-green">Cleaners</span>
+      <span class="badge badge--cat-yellow">Receptionists</span>
+    </div>
+  </section>
 
   {% if grid %}
-    <div class="table-wrapper">
-      <table class="roster-grid">
-        <caption class="visually-hidden">Master roster for {{ week_start.strftime('%d %b %Y') }} to {{ week_end.strftime('%d %b %Y') }}</caption>
-        <thead>
-          <tr>
-            <th scope="col" class="roster-grid__staff">Staff</th>
-            {% for day in days %}
-              <th scope="col" {% if day == today %}aria-current="date"{% endif %}>
-                {{ day.strftime('%a') }}<br>{{ day.strftime('%d %b') }}
-              </th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for entry in grid %}
+    <section class="card roster-table-card">
+      <div class="card__header">
+        <div>
+          <h2>Weekly schedule</h2>
+          <p class="page-header__meta">{{ week_start.strftime('%d %b %Y') }} &ndash; {{ week_end.strftime('%d %b %Y') }}</p>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="roster-grid">
+          <caption class="visually-hidden">Master roster for {{ week_start.strftime('%d %b %Y') }} to {{ week_end.strftime('%d %b %Y') }}</caption>
+          <thead>
             <tr>
-              <th scope="row" class="roster-grid__staff">
-                {{ entry.member.name }}<br>
-                <span class="badge badge--cat-{{ category_colors[entry.member.category] }}">{{ category_labels[entry.member.category] }}</span>
-              </th>
-              {% for cell in entry.cells %}
-                <td>
-                  {% for shift in cell %}
-                    <span class="roster-chip badge--cat-{{ category_colors[entry.member.category] }}">
-                      {{ shift.start_time.strftime('%H:%M') }}&ndash;{{ shift.end_time.strftime('%H:%M') }}
-                      &middot; {{ shift.site.name }}{% if shift.role %} ({{ shift.role }}){% endif %}
-                      {% if shift.status != 'invoiced' %}
-                        <form method="post" action="{{ url_for('roster.delete', shift_id=shift.id) }}"
-                              data-confirm="Remove this roster entry for {{ entry.member.name }} on {{ shift.shift_date.strftime('%d %b %Y') }}?">
-                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                          <input type="hidden" name="week_start" value="{{ week_start.isoformat() }}">
-                          <button type="submit" class="roster-chip__delete" aria-label="Remove this shift">&times;</button>
-                        </form>
-                      {% endif %}
-                    </span>
-                  {% endfor %}
-                </td>
+              <th scope="col" class="roster-grid__staff">Staff</th>
+              {% for day in days %}
+                <th scope="col" {% if day == today %}aria-current="date"{% endif %}>
+                  <span class="roster-day__label">{{ day.strftime('%a') }}</span>
+                  <span class="roster-day__date">{{ day.strftime('%d %b') }}</span>
+                </th>
               {% endfor %}
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {% for entry in grid %}
+              <tr>
+                <th scope="row" class="roster-grid__staff">
+                  <span class="roster-member__name">{{ entry.member.name }}</span>
+                  <span class="badge badge--cat-{{ category_colors[entry.member.category] }}">{{ category_labels[entry.member.category] }}</span>
+                </th>
+                {% for cell in entry.cells %}
+                  <td>
+                    {% for shift in cell %}
+                      <span class="roster-chip badge--cat-{{ category_colors[entry.member.category] }}">
+                        <span class="roster-chip__time">{{ shift.start_time.strftime('%H:%M') }}&ndash;{{ shift.end_time.strftime('%H:%M') }}</span>
+                        <span class="roster-chip__site">{{ shift.site.name }}{% if shift.role %} &middot; {{ shift.role }}{% endif %}</span>
+                        {% if shift.status != 'invoiced' %}
+                          <form method="post" action="{{ url_for('roster.delete', shift_id=shift.id) }}"
+                                data-confirm="Remove this roster entry for {{ entry.member.name }} on {{ shift.shift_date.strftime('%d %b %Y') }}?">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="week_start" value="{{ week_start.isoformat() }}">
+                            <button type="submit" class="roster-chip__delete" aria-label="Remove this shift">&times;</button>
+                          </form>
+                        {% endif %}
+                      </span>
+                    {% endfor %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
   {% else %}
     <div class="card empty-state">
       {{ icon_calendar() }}
@@ -75,8 +92,13 @@
     </div>
   {% endif %}
 
-  <section class="card" aria-labelledby="assign-heading" style="margin-top: var(--space-5);">
-    <h2 id="assign-heading">{{ icon_plus("icon icon--sm") }} Assign to roster</h2>
+  <section class="card roster-form-card" aria-labelledby="assign-heading">
+    <div class="card__header">
+      <div>
+        <h2 id="assign-heading">{{ icon_plus("icon icon--sm") }} Assign to roster</h2>
+        <p class="page-header__meta">Create a new weekly shift in a single step.</p>
+      </div>
+    </div>
 
     {% if not sites %}
       <p>No active sites available. Add a site first.</p>

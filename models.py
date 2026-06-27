@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone, UTC
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -167,6 +167,21 @@ class Site(db.Model):
             and s.invoice_id is None
             and s.approved_by_manager
         ]
+
+
+class AuditLog(db.Model):
+    __tablename__ = "audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    action = db.Column(db.String(120), nullable=False)
+    details = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(UTC))
+
+    user = db.relationship("User")
+
+    def __repr__(self):
+        return f"<AuditLog {self.id} {self.action}>"
 
 
 class Shift(db.Model):

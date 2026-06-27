@@ -1,0 +1,337 @@
+{
+  "communities": {
+    "0": [
+      "blueprints_frontline",
+      "blueprints_frontline_clock_in",
+      "blueprints_frontline_clock_out",
+      "blueprints_frontline_current_site",
+      "blueprints_frontline_incident_report",
+      "blueprints_frontline_key_issue",
+      "blueprints_frontline_key_return",
+      "blueprints_frontline_maintenance_log",
+      "blueprints_frontline_parcel_collect",
+      "blueprints_frontline_parcel_log",
+      "blueprints_frontline_portal",
+      "blueprints_frontline_visitor_sign_in",
+      "blueprints_frontline_visitor_sign_out",
+      "decorators",
+      "decorators_rationale_8",
+      "decorators_role_required",
+      "models_attendancerecord",
+      "models_attendancerecord_is_open",
+      "models_incidentreport",
+      "models_keyregisterentry",
+      "models_maintenancechecklistentry",
+      "models_parcellogentry",
+      "models_rationale_274",
+      "models_rationale_293",
+      "models_rationale_312",
+      "models_rationale_329",
+      "models_rationale_350",
+      "models_rationale_368",
+      "models_visitorlogentry"
+    ],
+    "1": [
+      "blueprints_invoices",
+      "blueprints_invoices_build_invoice_pdf",
+      "blueprints_invoices_detail",
+      "blueprints_invoices_download",
+      "blueprints_invoices_generate",
+      "blueprints_invoices_list_invoices",
+      "blueprints_invoices_mark_approved",
+      "blueprints_invoices_mark_paid",
+      "blueprints_invoices_mark_sent",
+      "blueprints_invoices_next_invoice_number",
+      "blueprints_invoices_parse_date",
+      "blueprints_invoices_preview",
+      "blueprints_invoices_rationale_132",
+      "blueprints_invoices_rationale_28",
+      "blueprints_invoices_restrict_to_finance_roles",
+      "models_invoice",
+      "models_invoice_total_hours"
+    ],
+    "2": [
+      "blueprints_payroll",
+      "blueprints_payroll_approve_payout",
+      "blueprints_payroll_eligible_shifts",
+      "blueprints_payroll_overview",
+      "blueprints_payroll_parse_date",
+      "blueprints_payroll_rationale_15",
+      "blueprints_payroll_restrict_to_payroll_roles",
+      "extensions",
+      "models",
+      "models_guard",
+      "models_guard_full_name",
+      "models_guard_sia_days_remaining",
+      "models_guard_sia_status",
+      "models_payrollpayout",
+      "models_rationale_406",
+      "seed",
+      "seed_rationale_1"
+    ],
+    "3": [
+      "blueprints_auth",
+      "blueprints_auth_complete_login",
+      "blueprints_auth_login",
+      "blueprints_auth_logout",
+      "blueprints_auth_mfa",
+      "blueprints_auth_post_login_redirect",
+      "blueprints_auth_set_language",
+      "models_user",
+      "models_user_check_password",
+      "models_user_get_id",
+      "models_user_is_frontline",
+      "models_user_requires_mfa",
+      "models_user_role_label",
+      "models_user_set_password",
+      "usermixin"
+    ],
+    "4": [
+      "blueprints_roster",
+      "blueprints_roster_assign",
+      "blueprints_roster_delete",
+      "blueprints_roster_master",
+      "blueprints_roster_parse_date",
+      "blueprints_roster_parse_time",
+      "blueprints_roster_rationale_30",
+      "blueprints_roster_rationale_51",
+      "blueprints_roster_restrict_to_site_management_roles",
+      "blueprints_roster_staff_roster",
+      "blueprints_roster_week_start",
+      "models_shift",
+      "models_shift_bill_amount",
+      "models_shift_hours",
+      "models_shift_pay_amount"
+    ],
+    "5": [
+      "blueprints_sites",
+      "blueprints_sites_approve_shift",
+      "blueprints_sites_assign_roster",
+      "blueprints_sites_complete_shift",
+      "blueprints_sites_delete_shift",
+      "blueprints_sites_detail",
+      "blueprints_sites_edit_site",
+      "blueprints_sites_list_sites",
+      "blueprints_sites_new_site",
+      "blueprints_sites_parse_date",
+      "blueprints_sites_parse_time",
+      "blueprints_sites_rationale_15",
+      "blueprints_sites_restrict_to_site_management_roles",
+      "models_site",
+      "models_site_uninvoiced_shifts"
+    ],
+    "6": [
+      "_icons_icon_alert_triangle",
+      "_icons_icon_building",
+      "_icons_icon_calendar",
+      "_icons_icon_plus",
+      "_icons_icon_scale",
+      "_icons_icon_trending_up",
+      "_icons_icon_wallet",
+      "_icons_icon_x_circle",
+      "guards_list_template",
+      "index_template",
+      "roster_master_template",
+      "sites_detail_template",
+      "sites_form_template",
+      "sites_list_template"
+    ],
+    "7": [
+      "_icons_icon_arrow_left",
+      "_icons_icon_invoice",
+      "_icons_icon_layout",
+      "_icons_icon_log_out",
+      "_icons_icon_user_check",
+      "_icons_icon_users",
+      "base_template",
+      "concept_secops_hub",
+      "guards_detail_template",
+      "guards_form_template",
+      "invoices_detail_template",
+      "invoices_generate_template",
+      "invoices_list_template"
+    ],
+    "8": [
+      "app",
+      "app_create_app",
+      "app_current_week_range",
+      "app_executive_metrics",
+      "app_rationale_28",
+      "config",
+      "config_config",
+      "i18n",
+      "i18n_load",
+      "i18n_rationale_1",
+      "i18n_translate"
+    ],
+    "9": [
+      "blueprints_guards",
+      "blueprints_guards_detail",
+      "blueprints_guards_edit_guard",
+      "blueprints_guards_list_guards",
+      "blueprints_guards_new_guard",
+      "blueprints_guards_parse_date",
+      "blueprints_guards_rationale_19",
+      "blueprints_guards_rationale_33",
+      "blueprints_guards_restrict_to_hr_roles",
+      "blueprints_guards_save_upload",
+      "blueprints_guards_validate"
+    ],
+    "10": [
+      "_icons_icon_moon",
+      "_icons_icon_shield",
+      "_icons_icon_sun",
+      "auth__auth_base_template",
+      "auth_login_template",
+      "auth_mfa_template",
+      "concept_lucide_icons",
+      "concept_theme_toggle"
+    ],
+    "11": [
+      "_icons_icon_alert_octagon",
+      "_icons_icon_clipboard_check",
+      "_icons_icon_globe",
+      "_icons_icon_key",
+      "_icons_icon_package",
+      "errors_error_template",
+      "frontline_portal_template"
+    ],
+    "12": [
+      "_icons_icon_check_circle",
+      "_icons_icon_clock",
+      "payroll_overview_template"
+    ],
+    "13": [
+      "blueprints_init"
+    ]
+  },
+  "cohesion": {
+    "0": 0.10344827586206896,
+    "1": 0.15441176470588236,
+    "2": 0.19117647058823528,
+    "3": 0.17142857142857143,
+    "4": 0.19047619047619047,
+    "5": 0.1619047619047619,
+    "6": 0.23076923076923078,
+    "7": 0.28205128205128205,
+    "8": 0.2727272727272727,
+    "9": 0.3090909090909091,
+    "10": 0.2857142857142857,
+    "11": 0.2857142857142857,
+    "12": 0.6666666666666666,
+    "13": 1.0
+  },
+  "gods": [
+    {
+      "id": "base_template",
+      "label": "base.html template",
+      "degree": 29
+    },
+    {
+      "id": "models_shift",
+      "label": "Shift",
+      "degree": 12
+    },
+    {
+      "id": "models_user",
+      "label": "User",
+      "degree": 12
+    },
+    {
+      "id": "models_guard",
+      "label": "Guard",
+      "degree": 11
+    },
+    {
+      "id": "index_template",
+      "label": "index.html (Dashboard)",
+      "degree": 11
+    },
+    {
+      "id": "models_site",
+      "label": "Site",
+      "degree": 9
+    },
+    {
+      "id": "frontline_portal_template",
+      "label": "frontline/portal.html template",
+      "degree": 9
+    },
+    {
+      "id": "guards_detail_template",
+      "label": "guards/detail.html template",
+      "degree": 9
+    },
+    {
+      "id": "blueprints_frontline_current_site",
+      "label": "_current_site()",
+      "degree": 8
+    },
+    {
+      "id": "_icons_icon_check_circle",
+      "label": "icon_check_circle macro",
+      "degree": 8
+    }
+  ],
+  "surprises": [
+    {
+      "source": "new_guard()",
+      "target": "Guard",
+      "source_files": [
+        "blueprints/guards.py",
+        "models.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "new_site()",
+      "target": "Site",
+      "source_files": [
+        "blueprints/sites.py",
+        "models.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `new_site()` unexpectedly reaches hub `Site`"
+    },
+    {
+      "source": "assign_roster()",
+      "target": "Shift",
+      "source_files": [
+        "blueprints/sites.py",
+        "models.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "create_app()",
+      "target": "translate()",
+      "source_files": [
+        "app.py",
+        "i18n.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories"
+    },
+    {
+      "source": "clock_in()",
+      "target": "AttendanceRecord",
+      "source_files": [
+        "blueprints/frontline.py",
+        "models.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories"
+    }
+  ],
+  "tokens": {
+    "input": 34980,
+    "output": 13434
+  }
+}

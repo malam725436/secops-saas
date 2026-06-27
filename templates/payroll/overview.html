@@ -4,14 +4,21 @@
 {% block title %}Payroll{% endblock %}
 
 {% block content %}
-  <div class="page-header">
-    <div>
-      <h1>{{ icon_clock("icon icon--lg") }} Payroll</h1>
-      <p class="page-header__meta">Approved, clocked hours for the current pay cycle, ready for payout.</p>
+  <section class="card payroll-hero">
+    <div class="payroll-hero__content">
+      <p class="invoice-hero__eyebrow">{{ icon_clock("icon icon--sm") }} Payroll review</p>
+      <h1>Payroll</h1>
+      <p class="page-header__meta">Review approved guard hours, calculate payout totals, and approve payments for the selected pay cycle.</p>
     </div>
-  </div>
+  </section>
 
-  <form class="card" method="get" style="margin-bottom: var(--space-4);">
+  <form class="card payroll-filter-card" method="get">
+    <div class="card__header">
+      <div>
+        <h2>Pay cycle</h2>
+        <p class="page-header__meta">Adjust the period to review the relevant hours and payouts.</p>
+      </div>
+    </div>
     <div class="form-grid">
       <div class="field">
         <label for="period_start">Period start</label>
@@ -26,20 +33,38 @@
   </form>
 
   {% if rows %}
+    {% set total_hours = rows | map(attribute='total_hours') | sum %}
+    {% set total_pay = rows | map(attribute='total_pay') | sum %}
+
+    <div class="invoice-summary-grid">
+      <div class="stat-card">
+        <div class="stat-card__label">{{ icon_clock("icon icon--sm") }} Approved hours</div>
+        <div class="stat-card__value">{{ '%.2f'|format(total_hours) }}</div>
+      </div>
+      <div class="stat-card stat-card--success">
+        <div class="stat-card__label">Estimated payout</div>
+        <div class="stat-card__value">£{{ '%.2f'|format(total_pay) }}</div>
+      </div>
+      <div class="stat-card stat-card--warning">
+        <div class="stat-card__label">Employees ready</div>
+        <div class="stat-card__value">{{ rows|length }}</div>
+      </div>
+    </div>
+
     {% for row in rows %}
-      <section class="card" style="margin-bottom: var(--space-4);" aria-labelledby="guard-heading-{{ row.guard.id }}">
-        <div class="page-header" style="margin-bottom: var(--space-3);">
+      <section class="card payroll-row-card" aria-labelledby="guard-heading-{{ row.guard.id }}">
+        <div class="card__header payroll-row-card__header">
           <div>
-            <h2 id="guard-heading-{{ row.guard.id }}" style="margin: 0;">
+            <h2 id="guard-heading-{{ row.guard.id }}">
               <a href="{{ url_for('guards.detail', guard_id=row.guard.id) }}">{{ row.guard.full_name }}</a>
             </h2>
-            <p class="page-header__meta">{{ row.total_hours }} approved hours &middot; £{{ '%.2f'|format(row.pay_rate) }} / hr</p>
+            <p class="page-header__meta">{{ '%.2f'|format(row.total_hours) }} approved hours &middot; £{{ '%.2f'|format(row.pay_rate) }} / hr</p>
           </div>
           <form method="post" action="{{ url_for('payroll.approve_payout', guard_id=row.guard.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="period_start" value="{{ period_start.isoformat() }}">
             <input type="hidden" name="period_end" value="{{ period_end.isoformat() }}">
-            <button type="submit" class="btn btn-primary btn-sm">Approve for payout &mdash; £{{ '%.2f'|format(row.total_pay) }}</button>
+            <button type="submit" class="btn btn-primary btn-sm">Approve payout &mdash; £{{ '%.2f'|format(row.total_pay) }}</button>
           </form>
         </div>
 
@@ -62,16 +87,16 @@
                   <td>{{ shift.shift_date.strftime('%d %b %Y') }}</td>
                   <td>{{ shift.start_time.strftime('%H:%M') }}</td>
                   <td>{{ shift.end_time.strftime('%H:%M') }}</td>
-                  <td class="numeric">{{ shift.hours }}</td>
-                  <td class="numeric">£{{ '%.2f'|format(row.pay_rate) }}</td>
-                  <td class="numeric">£{{ '%.2f'|format(shift.hours * row.pay_rate) }}</td>
+                  <td class="numeric">{{ '%.2f'|format(shift.hours) }}</td>
+                  <td class="numeric">£{{ '%.2f'|format(shift.active_pay_rate) }}</td>
+                  <td class="numeric">£{{ '%.2f'|format(shift.pay_amount) }}</td>
                 </tr>
               {% endfor %}
             </tbody>
             <tfoot>
               <tr>
                 <th scope="row" colspan="3" style="text-align:right;">Total</th>
-                <td class="numeric"><strong>{{ row.total_hours }}</strong></td>
+                <td class="numeric"><strong>{{ '%.2f'|format(row.total_hours) }}</strong></td>
                 <td class="numeric"></td>
                 <td class="numeric"><strong>£{{ '%.2f'|format(row.total_pay) }}</strong></td>
               </tr>
@@ -88,8 +113,13 @@
   {% endif %}
 
   {% if recent_payouts %}
-    <section class="card" style="margin-top: var(--space-5);">
-      <h2>Recent payouts</h2>
+    <section class="card payroll-history-card">
+      <div class="card__header">
+        <div>
+          <h2>Recent payouts</h2>
+          <p class="page-header__meta">A simple audit trail of the latest approved payment runs.</p>
+        </div>
+      </div>
       <div class="table-wrapper">
         <table>
           <caption class="visually-hidden">Recent payroll payouts</caption>
@@ -108,7 +138,7 @@
               <tr>
                 <td>{{ payout.guard.full_name }}</td>
                 <td>{{ payout.period_start.strftime('%d %b %Y') }} &ndash; {{ payout.period_end.strftime('%d %b %Y') }}</td>
-                <td class="numeric">{{ payout.total_hours }}</td>
+                <td class="numeric">{{ '%.2f'|format(payout.total_hours) }}</td>
                 <td class="numeric">£{{ '%.2f'|format(payout.total_pay) }}</td>
                 <td>{{ payout.approved_at.strftime('%d %b %Y %H:%M') }} by {{ payout.approved_by.name }}</td>
                 <td><span class="badge badge--approved">{{ icon_check_circle("icon icon--sm") }} Paid</span></td>

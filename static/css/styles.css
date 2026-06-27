@@ -488,6 +488,108 @@ textarea:focus-visible,
 /* ==========================================================================
    Cards & stat tiles
    ========================================================================== */
+.invoice-hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-background) 100%);
+}
+
+.invoice-hero__content {
+  flex: 1 1 320px;
+}
+
+.invoice-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  color: var(--color-secondary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.invoice-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.invoice-hero__actions--stacked {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.invoice-hero__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-4);
+}
+
+.invoice-hero__fact {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="dark"] .invoice-hero__fact {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.invoice-hero__label {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--color-muted-foreground);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.invoice-hero__value {
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.invoice-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.invoice-list-section {
+  margin-top: 0;
+}
+
+.invoice-table-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 700;
+  color: var(--color-heading);
+  text-decoration: none;
+}
+
+.invoice-table-link:hover {
+  color: var(--color-primary);
+}
+
+.invoice-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -604,6 +706,28 @@ textarea:focus-visible,
 /* ==========================================================================
    Master Roster - colour-coded staff categories
    ========================================================================== */
+.roster-grid {
+  min-width: 920px;
+}
+
+.roster-grid th,
+.roster-grid td {
+  vertical-align: top;
+}
+
+.roster-grid th[scope="col"] {
+  min-width: 120px;
+}
+
+.roster-grid__staff {
+  min-width: 190px;
+  background: rgba(248, 250, 252, 0.8);
+}
+
+[data-theme="dark"] .roster-grid__staff {
+  background: rgba(15, 23, 42, 0.55);
+}
+
 .badge--cat-blue {
   background: #DBEAFE;
   color: #1E40AF;
@@ -643,15 +767,29 @@ textarea:focus-visible,
 }
 
 .roster-chip {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
   border-radius: var(--radius-sm, 4px);
-  padding: var(--space-1) var(--space-2);
-  margin-bottom: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
   font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.roster-chip__time {
+  font-weight: 700;
+}
+
+.roster-chip__site {
+  flex: 1 1 140px;
 }
 
 .roster-chip form {
-  display: inline;
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
 }
 
 .roster-chip__delete {
@@ -660,7 +798,8 @@ textarea:focus-visible,
   cursor: pointer;
   color: inherit;
   font-weight: 700;
-  padding: 0 0 0 var(--space-1);
+  padding: 0;
+  line-height: 1;
 }
 
 /* ==========================================================================
@@ -737,6 +876,87 @@ textarea:focus-visible,
 /* ==========================================================================
    Tables
    ========================================================================== */
+.payroll-hero,
+.payroll-filter-card,
+.payroll-row-card,
+.payroll-history-card {
+  margin-bottom: var(--space-5);
+}
+
+.payroll-hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.payroll-hero__content {
+  flex: 1 1 320px;
+}
+
+.payroll-row-card__header {
+  align-items: center;
+}
+
+.payroll-row-card__header form {
+  margin-left: auto;
+}
+
+.roster-hero,
+.roster-legend,
+.roster-table-card,
+.roster-form-card {
+  margin-bottom: var(--space-5);
+}
+
+.roster-hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.roster-hero__content {
+  flex: 1 1 320px;
+}
+
+.roster-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.roster-legend__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.roster-day__label {
+  display: block;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--text-xs);
+}
+
+.roster-day__date {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-muted-foreground);
+}
+
+.roster-member__name {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
 .table-wrapper {
   overflow-x: auto;
   border: 1px solid var(--color-border);
@@ -962,5 +1182,141 @@ td.numeric, th.numeric {
 @media (min-width: 1440px) {
   :root {
     --container-width: 1320px;
+  }
+}
+
+/* ==========================================================================
+   Print styling: clean white-paper invoice output
+   ========================================================================== */
+@media print {
+  :root {
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    min-height: auto !important;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 18mm;
+  }
+
+  header,
+  .app-footer,
+  .app-nav,
+  .app-header__session,
+  .breadcrumb-link,
+  .theme-toggle,
+  .btn,
+  .btn-group,
+  .alert,
+  .skip-link {
+    display: none !important;
+  }
+
+  .app-main {
+    max-width: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .page-header {
+    display: block !important;
+    margin: 0 0 var(--space-4) !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .page-header > div {
+    width: auto !important;
+  }
+
+  .page-header h1,
+  .page-header__meta,
+  .page-header p,
+  .page-header a {
+    color: #000000 !important;
+  }
+
+  .card,
+  .table-wrapper,
+  table,
+  th,
+  td {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border-color: #000000 !important;
+  }
+
+  .card {
+    border: 1px solid #000000 !important;
+    page-break-inside: avoid !important;
+  }
+
+  .card + .card {
+    margin-top: var(--space-4) !important;
+  }
+
+  .table-wrapper {
+    overflow: visible !important;
+    border: 1px solid #000000 !important;
+  }
+
+  table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 12px !important;
+  }
+
+  th,
+  td {
+    padding: 10px 12px !important;
+    border-bottom: 1px solid #000000 !important;
+  }
+
+  th {
+    background: #f7f7f7 !important;
+    color: #000000 !important;
+  }
+
+  tbody tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-row-group !important;
+  }
+
+  .badge {
+    display: inline-block !important;
+    border: 1px solid #000000 !important;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #444444;
+  }
+
+  .page-header__meta {
+    margin-bottom: var(--space-2) !important;
   }
 }

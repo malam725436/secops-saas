@@ -1,5 +1,5 @@
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone, UTC
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
@@ -14,7 +14,7 @@ from blueprints.sites import sites_bp
 from config import Config
 from extensions import csrf, db, login_manager
 from i18n import SUPPORTED_LANGUAGES, translate
-from models import FINANCE_ROLES, SESSION_TIMEOUT_MINUTES, Guard, Invoice, Shift, Site, User
+from models import AuditLog, FINANCE_ROLES, SESSION_TIMEOUT_MINUTES, Guard, Invoice, Shift, Site, User
 
 
 def _current_week_range(today=None):
@@ -48,6 +48,36 @@ def _executive_metrics(sites):
 
     active_sites = [{"site": site, "hours": round(site_hours[site.id], 2)} for site in sites]
 
+    week_guard_ids = {shift.guard_id for shift in week_shifts if shift.guard_id is not None}
+    approved_hours_awaiting_payout = round(
+        sum(
+            shift.hours
+            for shift in Shift.query.filter(
+                Shift.guard_id.isnot(None),
+                Shift.status.in_(["completed", "invoiced"]),
+                Shift.approved_by_manager.is_(True),
+                Shift.paid_out.is_(False),
+            ).all()
+        ),
+        2,
+    )
+    estimated_weekly_payroll_liability = round(
+        sum(
+            round(
+                shift.hours
+                * (
+                    float(shift.pay_rate)
+                    if float(shift.pay_rate) > 0
+                    else float(shift.guard.pay_rate)
+                ),
+                2,
+            )
+            for shift in week_shifts
+            if shift.guard_id is not None
+        ),
+        2,
+    )
+
     return {
         "total_revenue": total_revenue,
         "total_payroll": total_payroll,
@@ -55,6 +85,9 @@ def _executive_metrics(sites):
         "profit_margin": profit_margin,
         "scheduled_staff_count": len(staff_ids),
         "active_sites": active_sites,
+        "active_guards_this_week": len(week_guard_ids),
+        "approved_hours_awaiting_payout": approved_hours_awaiting_payout,
+        "estimated_weekly_payroll_liability": estimated_weekly_payroll_liability,
         "week_start": week_start,
         "week_end": week_end,
     }
@@ -81,7 +114,7 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        return db.session.get(User, int(user_id))
 
     # ------------------------------------------------------------------
     # GDPR safeguard: enforce a 15-minute inactivity timeout and require
@@ -123,6 +156,7 @@ def create_app():
         sites = Site.query.filter_by(is_active=True).all()
         sites_with_pending = [s for s in sites if s.uninvoiced_shifts]
         recent_invoices = Invoice.query.order_by(Invoice.issue_date.desc()).limit(5).all()
+        recent_activities = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(5).all()
 
         # Executive analytics (revenue/payroll/profit) are corporate financial
         # data - restricted to Owners and Ops Managers per GDPR data isolation.
@@ -136,6 +170,7 @@ def create_app():
             site_count=len(sites),
             sites_with_pending=sites_with_pending,
             recent_invoices=recent_invoices,
+            recent_activities=recent_activities,
             metrics=metrics,
         )
 
@@ -151,7 +186,7 @@ def create_app():
     def inject_now():
         language = current_user.language if current_user.is_authenticated else "en"
         return {
-            "current_year": datetime.utcnow().year,
+            "current_year": datetime.now(UTC).year,
             "t": lambda key: translate(key, language),
             "current_language": language,
             "supported_languages": SUPPORTED_LANGUAGES,

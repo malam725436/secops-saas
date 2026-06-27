@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -32,9 +32,15 @@ def _eligible_shifts(period_start, period_end):
     ).all()
 
 
+def _active_rate_and_amount(shift, fallback_rate):
+    active_rate = float(shift.pay_rate) if getattr(shift, "pay_rate", None) and float(shift.pay_rate) > 0 else fallback_rate
+    amount = round(shift.hours * active_rate, 2)
+    return active_rate, amount
+
+
 @payroll_bp.route("/")
 def overview():
-    today = datetime.utcnow().date()
+    today = datetime.now(UTC).date()
     period_end = _parse_date(request.args.get("period_end", "")) or today
     period_start = _parse_date(request.args.get("period_start", "")) or (period_end - timedelta(days=13))
 
@@ -48,13 +54,19 @@ def overview():
         guard_shifts.sort(key=lambda s: (s.shift_date, s.start_time))
         total_hours = round(sum(s.hours for s in guard_shifts), 2)
         pay_rate = float(guard.pay_rate)
+        total_pay = 0.0
+        for shift in guard_shifts:
+            active_rate, amount = _active_rate_and_amount(shift, pay_rate)
+            shift.active_pay_rate = active_rate
+            shift.pay_amount = amount
+            total_pay += amount
         rows.append(
             {
                 "guard": guard,
                 "shifts": guard_shifts,
                 "total_hours": total_hours,
                 "pay_rate": pay_rate,
-                "total_pay": round(total_hours * pay_rate, 2),
+                "total_pay": round(total_pay, 2),
             }
         )
 
@@ -85,7 +97,12 @@ def approve_payout(guard_id):
         return redirect(url_for("payroll.overview", period_start=period_start, period_end=period_end))
 
     total_hours = round(sum(s.hours for s in guard_shifts), 2)
-    total_pay = round(total_hours * float(guard.pay_rate), 2)
+    fallback_rate = float(guard.pay_rate)
+    total_pay = 0.0
+    for shift in guard_shifts:
+        _, amount = _active_rate_and_amount(shift, fallback_rate)
+        total_pay += amount
+    total_pay = round(total_pay, 2)
 
     payout = PayrollPayout(
         guard_id=guard.id,

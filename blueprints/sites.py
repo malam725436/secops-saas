@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -66,7 +66,7 @@ def detail(site_id):
     site = Site.query.get_or_404(site_id)
     guards = Guard.query.filter_by(is_active=True).order_by(Guard.first_name.asc()).all()
     roster = sorted(site.shifts, key=lambda s: (s.shift_date, s.start_time), reverse=True)
-    return render_template("sites/detail.html", site=site, guards=guards, roster=roster, today=datetime.utcnow().date())
+    return render_template("sites/detail.html", site=site, guards=guards, roster=roster, today=datetime.now(UTC).date())
 
 
 @sites_bp.route("/<int:site_id>/edit", methods=["GET", "POST"])

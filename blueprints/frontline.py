@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -117,7 +117,7 @@ def clock_in():
 def clock_out():
     record = AttendanceRecord.query.filter_by(user_id=current_user.id, clock_out=None).first()
     if record:
-        record.clock_out = datetime.utcnow()
+        record.clock_out = datetime.now(UTC)
         db.session.commit()
         flash("Clocked out.", "success")
     return redirect(url_for("frontline.portal", site_id=request.form.get("site_id", type=int)))
@@ -150,7 +150,7 @@ def visitor_sign_in():
 @role_required(*RECEPTION_ROLES)
 def visitor_sign_out(entry_id):
     entry = VisitorLogEntry.query.get_or_404(entry_id)
-    entry.signed_out_at = datetime.utcnow()
+    entry.signed_out_at = datetime.now(UTC)
     db.session.commit()
     flash("Visitor signed out.", "success")
     return redirect(url_for("frontline.portal", site_id=entry.site_id))
@@ -178,7 +178,7 @@ def key_issue():
 @role_required(*RECEPTION_ROLES)
 def key_return(entry_id):
     entry = KeyRegisterEntry.query.get_or_404(entry_id)
-    entry.returned_at = datetime.utcnow()
+    entry.returned_at = datetime.now(UTC)
     db.session.commit()
     flash("Key marked as returned.", "success")
     return redirect(url_for("frontline.portal", site_id=entry.site_id))
@@ -207,7 +207,7 @@ def parcel_log():
 @role_required(*RECEPTION_ROLES)
 def parcel_collect(entry_id):
     entry = ParcelLogEntry.query.get_or_404(entry_id)
-    entry.collected_at = datetime.utcnow()
+    entry.collected_at = datetime.now(UTC)
     db.session.commit()
     flash("Parcel marked as collected.", "success")
     return redirect(url_for("frontline.portal", site_id=entry.site_id))

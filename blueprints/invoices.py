@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from io import BytesIO
 
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, send_file, url_for
@@ -40,7 +40,7 @@ def _parse_date(value):
 
 def _next_invoice_number(site):
     count = Invoice.query.filter_by(site_id=site.id).count() + 1
-    return f"INV-{site.id:03d}-{datetime.utcnow():%Y%m}-{count:03d}"
+    return f"INV-{site.id:03d}-{datetime.now(UTC):%Y%m}-{count:03d}"
 
 
 @invoices_bp.route("/")
@@ -179,6 +179,13 @@ def detail(invoice_id):
     invoice = Invoice.query.get_or_404(invoice_id)
     shifts = sorted(invoice.shifts, key=lambda s: (s.shift_date, s.start_time))
     return render_template("invoices/detail.html", invoice=invoice, shifts=shifts)
+
+
+@invoices_bp.route("/<int:invoice_id>/print-preview")
+def print_preview(invoice_id):
+    invoice = Invoice.query.get_or_404(invoice_id)
+    shifts = sorted(invoice.shifts, key=lambda s: (s.shift_date, s.start_time))
+    return render_template("invoices/print_preview.html", invoice=invoice, shifts=shifts)
 
 
 @invoices_bp.route("/<int:invoice_id>/mark-approved", methods=["POST"])
@@ -362,13 +369,22 @@ def _build_invoice_pdf(invoice):
 
 
 @invoices_bp.route("/<int:invoice_id>/download")
+@invoices_bp.route("/<int:invoice_id>/download/")
 def download(invoice_id):
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = Invoice.query.get(invoice_id)
+    if invoice is None:
+        flash("The requested invoice could not be found.", "error")
+        return redirect(url_for("invoices.list_invoices"))
+
     pdf_buf = _build_invoice_pdf(invoice)
-    filename = f"{invoice.invoice_number}.pdf"
+    filename = f"INV-{invoice.invoice_number}.pdf"
+    pdf_buf.seek(0)
+
+    # Use send_file with explicit headers to ensure browsers treat it as a PDF attachment.
     return send_file(
         pdf_buf,
         mimetype="application/pdf",
         as_attachment=True,
         download_name=filename,
+        conditional=False,
     )
