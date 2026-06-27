@@ -40,6 +40,19 @@ def _parse_time(value):
     return datetime.strptime(value, "%H:%M").time() if value else None
 
 
+def _guard_conflict_for_shift(shift):
+    if shift.guard_id is None:
+        return None
+    return (
+        Shift.query.filter(
+            Shift.guard_id == shift.guard_id,
+            Shift.shift_date == shift.shift_date,
+            Shift.id != getattr(shift, "id", None),
+        )
+        .all()
+    )
+
+
 def _week_start(value):
     parsed = _parse_date(value)
     today = datetime.now(UTC).date()
@@ -163,6 +176,20 @@ def assign():
     else:
         flash("Invalid staff selection.", "error")
         return redirect(url_for("roster.master", week_start=week_start))
+
+    if shift.guard_id is not None:
+        existing_conflicts = [
+            existing
+            for existing in _guard_conflict_for_shift(shift)
+            if existing.has_conflict_with(shift)
+        ]
+        if existing_conflicts:
+            conflict = existing_conflicts[0]
+            flash(
+                f"{person_name} is already assigned to a conflicting shift on {shift_date:%d %b %Y} at {conflict.site.name}.",
+                "error",
+            )
+            return redirect(url_for("roster.master", week_start=week_start))
 
     db.session.add(shift)
     db.session.commit()

@@ -237,6 +237,23 @@ class Shift(db.Model):
             end += timedelta(days=1)  # overnight shift
         return round((end - start).total_seconds() / 3600, 2)
 
+    def has_conflict_with(self, other):
+        if self.shift_date != other.shift_date:
+            return False
+        if self.guard_id is None or other.guard_id is None:
+            return False
+        if self.guard_id != other.guard_id:
+            return False
+        start_a = datetime.combine(self.shift_date, self.start_time)
+        end_a = datetime.combine(self.shift_date, self.end_time)
+        start_b = datetime.combine(other.shift_date, other.start_time)
+        end_b = datetime.combine(other.shift_date, other.end_time)
+        if end_a <= start_a:
+            end_a += timedelta(days=1)
+        if end_b <= start_b:
+            end_b += timedelta(days=1)
+        return start_a < end_b and start_b < end_a
+
     @property
     def pay_amount(self):
         return round(float(self.pay_rate) * self.hours, 2)
