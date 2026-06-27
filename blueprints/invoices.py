@@ -400,7 +400,7 @@ def _invoice_pdf_attachment(invoice):
 @invoices_bp.route("/<int:invoice_id>/download")
 @invoices_bp.route("/<int:invoice_id>/download/")
 def download(invoice_id):
-    invoice = Invoice.query.get(invoice_id)
+    invoice = db.session.get(Invoice, invoice_id)
     if invoice is None:
         flash("The requested invoice could not be found.", "error")
         return redirect(url_for("invoices.list_invoices"))
@@ -418,7 +418,7 @@ def download(invoice_id):
 
 @invoices_bp.route("/<int:invoice_id>/email", methods=["POST"])
 def email_invoice(invoice_id):
-    invoice = Invoice.query.get(invoice_id)
+    invoice = db.session.get(Invoice, invoice_id)
     if invoice is None:
         flash("The requested invoice could not be found.", "error")
         return redirect(url_for("invoices.list_invoices"))

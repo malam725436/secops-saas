@@ -33,7 +33,7 @@ FACILITIES_ROLES = {ROLE_CLEANER}
 def _current_site():
     site_id = request.args.get("site_id", type=int) or request.form.get("site_id", type=int)
     if site_id:
-        site = Site.query.get(site_id)
+        site = db.session.get(Site, site_id)
         if site:
             return site
     return Site.query.filter_by(is_active=True).order_by(Site.name).first()

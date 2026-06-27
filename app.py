@@ -105,6 +105,29 @@ def _is_production():
     return env == "production" or flag in {"1", "true", "yes", "on"}
 
 
+def _register_mock_mail_logger(app):
+    """Log every dispatched email instead of relying on a real mail server.
+
+    Flask-Mail still fires the ``email_dispatched`` signal when sending is
+    suppressed, so this lets local "Send test email" actions be verified in
+    the application log without opening an SMTP connection.
+    """
+    from flask_mail import email_dispatched
+
+    def _log_outbound(sender, message=None, **_extra):
+        if message is None:
+            return
+        sender.logger.info(
+            "Mock mail delivery (suppressed): to=%s subject=%r",
+            ", ".join(message.recipients or []),
+            message.subject,
+        )
+
+    # weak=False keeps the local receiver alive for the app's lifetime.
+    email_dispatched.connect(_log_outbound, sender=app, weak=False)
+    app.extensions.setdefault("mock_mail_receivers", []).append(_log_outbound)
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -126,6 +149,16 @@ def create_app():
                 "Refusing to start in production with the default SECRET_KEY. "
                 "Set a strong, secret SECRET_KEY environment variable."
             )
+    else:
+        # Local/dev: suppress real SMTP delivery so test emails never raise
+        # connection errors, and log each message for verification. Set
+        # MAIL_SUPPRESS_SEND=0 in the environment to force real sends locally.
+        env_suppress = os.environ.get("MAIL_SUPPRESS_SEND")
+        if env_suppress is None:
+            app.config["MAIL_SUPPRESS_SEND"] = True
+        else:
+            app.config["MAIL_SUPPRESS_SEND"] = env_suppress.strip().lower() in {"1", "true", "yes", "on"}
+        _register_mock_mail_logger(app)
 
     db.init_app(app)
     csrf.init_app(app)

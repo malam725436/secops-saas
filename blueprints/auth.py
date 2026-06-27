@@ -50,7 +50,7 @@ def mfa():
     if not user_id:
         return redirect(url_for("auth.login"))
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         session.pop(PENDING_MFA_KEY, None)
         return redirect(url_for("auth.login"))
