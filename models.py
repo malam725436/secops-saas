@@ -91,6 +91,13 @@ SIA_LICENSE_TYPES = [
 # Days before SIA expiry at which a guard is flagged as "expiring soon".
 SIA_EXPIRY_WARNING_DAYS = 30
 
+# Common annual holidays that trigger holiday premium pay.
+DESIGNATED_HOLIDAYS = {
+    (1, 1),
+    (12, 25),
+    (12, 26),
+}
+
 
 class Guard(db.Model):
     __tablename__ = "guards"
@@ -233,6 +240,10 @@ class Shift(db.Model):
     @property
     def pay_amount(self):
         return round(float(self.pay_rate) * self.hours, 2)
+
+    @property
+    def is_designated_holiday(self):
+        return (self.shift_date.month, self.shift_date.day) in DESIGNATED_HOLIDAYS
 
     @property
     def bill_amount(self):

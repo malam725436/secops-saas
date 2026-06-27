@@ -32,10 +32,44 @@ def _eligible_shifts(period_start, period_end):
     ).all()
 
 
-def _active_rate_and_amount(shift, fallback_rate):
-    active_rate = float(shift.pay_rate) if getattr(shift, "pay_rate", None) and float(shift.pay_rate) > 0 else fallback_rate
-    amount = round(shift.hours * active_rate, 2)
-    return active_rate, amount
+def _week_start_for_date(day):
+    return day - timedelta(days=day.weekday())
+
+
+def _calculate_shift_pay(shift, fallback_rate, weekly_hours_before_shift=0.0):
+    base_rate = float(shift.pay_rate) if getattr(shift, "pay_rate", None) and float(shift.pay_rate) > 0 else fallback_rate
+    hours = float(shift.hours)
+
+    if getattr(shift, "is_designated_holiday", False):
+        active_rate = round(base_rate * 1.25, 2)
+        amount = round(hours * active_rate, 2)
+        return active_rate, amount, 1.25, "holiday"
+
+    normal_hours = max(40.0 - float(weekly_hours_before_shift), 0.0)
+    overtime_hours = max(hours - normal_hours, 0.0)
+    if overtime_hours > 0:
+        active_rate = round(base_rate * 1.5, 2)
+        amount = round((hours - overtime_hours) * base_rate + overtime_hours * active_rate, 2)
+        return active_rate, amount, 1.5, "overtime"
+
+    amount = round(hours * base_rate, 2)
+    return base_rate, amount, 1.0, None
+
+
+def _apply_payroll_rules(guard_shifts, fallback_rate):
+    weekly_hours = {}
+    total_pay = 0.0
+    for shift in guard_shifts:
+        week_start = _week_start_for_date(shift.shift_date)
+        prior_week_hours = weekly_hours.get(week_start, 0.0)
+        active_rate, amount, multiplier, premium_reason = _calculate_shift_pay(shift, fallback_rate, prior_week_hours)
+        weekly_hours[week_start] = prior_week_hours + float(shift.hours)
+        shift.active_pay_rate = active_rate
+        shift.pay_amount = amount
+        shift.premium_multiplier = multiplier
+        shift.premium_reason = premium_reason
+        total_pay += amount
+    return round(total_pay, 2)
 
 
 @payroll_bp.route("/")
@@ -54,12 +88,7 @@ def overview():
         guard_shifts.sort(key=lambda s: (s.shift_date, s.start_time))
         total_hours = round(sum(s.hours for s in guard_shifts), 2)
         pay_rate = float(guard.pay_rate)
-        total_pay = 0.0
-        for shift in guard_shifts:
-            active_rate, amount = _active_rate_and_amount(shift, pay_rate)
-            shift.active_pay_rate = active_rate
-            shift.pay_amount = amount
-            total_pay += amount
+        total_pay = _apply_payroll_rules(guard_shifts, pay_rate)
         rows.append(
             {
                 "guard": guard,
@@ -98,11 +127,7 @@ def approve_payout(guard_id):
 
     total_hours = round(sum(s.hours for s in guard_shifts), 2)
     fallback_rate = float(guard.pay_rate)
-    total_pay = 0.0
-    for shift in guard_shifts:
-        _, amount = _active_rate_and_amount(shift, fallback_rate)
-        total_pay += amount
-    total_pay = round(total_pay, 2)
+    total_pay = _apply_payroll_rules(guard_shifts, fallback_rate)
 
     payout = PayrollPayout(
         guard_id=guard.id,
