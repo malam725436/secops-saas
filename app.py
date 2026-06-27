@@ -29,7 +29,7 @@ def _executive_metrics(sites):
     """Revenue, payroll, profit and weekly staffing snapshot for the executive dashboard."""
     total_revenue = float(sum(invoice.total_amount for invoice in Invoice.query.all()))
     total_payroll = round(
-        sum(shift.pay_amount for shift in Shift.query.filter(Shift.guard_id.isnot(None)).all()), 2
+        sum(shift.pay_amount or 0 for shift in Shift.query.filter(Shift.guard_id.isnot(None)).all()), 2
     )
     net_profit = round(total_revenue - total_payroll, 2)
     profit_margin = round((net_profit / total_revenue) * 100, 1) if total_revenue else 0.0
