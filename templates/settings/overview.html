@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <div class="card__header">
+      <div>
+        <h1>System settings</h1>
+        <p class="page-header__meta">Configure live mail delivery settings for invoices and notifications.</p>
+      </div>
+    </div>
+
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="MAIL_SERVER">Mail server</label>
+          <input type="text" id="MAIL_SERVER" name="MAIL_SERVER" value="{{ settings.get('MAIL_SERVER', '') }}">
+        </div>
+        <div class="field">
+          <label for="MAIL_PORT">Mail port</label>
+          <input type="number" id="MAIL_PORT" name="MAIL_PORT" value="{{ settings.get('MAIL_PORT', '') }}">
+        </div>
+        <div class="field">
+          <label for="MAIL_USERNAME">Username</label>
+          <input type="text" id="MAIL_USERNAME" name="MAIL_USERNAME" value="{{ settings.get('MAIL_USERNAME', '') }}">
+        </div>
+        <div class="field">
+          <label for="MAIL_PASSWORD">Password</label>
+          <input type="password" id="MAIL_PASSWORD" name="MAIL_PASSWORD" value="{{ settings.get('MAIL_PASSWORD', '') }}">
+        </div>
+        <div class="field">
+          <label for="MAIL_DEFAULT_SENDER">Default sender</label>
+          <input type="email" id="MAIL_DEFAULT_SENDER" name="MAIL_DEFAULT_SENDER" value="{{ settings.get('MAIL_DEFAULT_SENDER', '') }}">
+        </div>
+        <div class="field">
+          <label for="INVOICE_EMAIL_RECIPIENT">Invoice recipient</label>
+          <input type="email" id="INVOICE_EMAIL_RECIPIENT" name="INVOICE_EMAIL_RECIPIENT" value="{{ settings.get('INVOICE_EMAIL_RECIPIENT', '') }}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="checkbox">
+          <input type="checkbox" name="MAIL_USE_TLS" {% if settings.get('MAIL_USE_TLS', '0') in ['1', 'true', 'True', 'on'] %}checked{% endif %}>
+          <span>Use TLS</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save settings</button>
+    </form>
+  </section>
+{% endblock %}

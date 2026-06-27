@@ -8,6 +8,7 @@
   "nav.payroll": "Payroll",
   "nav.frontline": "Frontline Portal",
   "nav.logout": "Sign out",
+  "nav.settings": "Settings",
 
   "login.title": "Sign in",
   "login.subtitle": "Enter your credentials to access SecOps Hub.",

@@ -23,7 +23,7 @@
 <body class="{% block body_class %}{% endblock %}">
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
-  {% from "_icons.html" import icon_shield, icon_layout, icon_users, icon_building, icon_invoice, icon_sun, icon_moon, icon_log_out, icon_user_check, icon_clock, icon_calendar %}
+  {% from "_icons.html" import icon_shield, icon_layout, icon_users, icon_building, icon_invoice, icon_sun, icon_moon, icon_log_out, icon_user_check, icon_clock, icon_calendar, icon_settings %}
   <header class="app-header">
     <div class="app-header__inner">
       <a class="app-header__brand" href="{{ url_for('dashboard') }}">
@@ -63,6 +63,11 @@
           {% if current_user.is_frontline %}
             <a href="{{ url_for('frontline.portal') }}" {% if request.endpoint and request.endpoint.startswith('frontline.') %}aria-current="page"{% endif %}>
               {{ icon_shield() }} {{ t('nav.frontline') }}
+            </a>
+          {% endif %}
+          {% if current_user.role in ('owner', 'hr_compliance') %}
+            <a href="{{ url_for('settings.overview') }}" {% if request.endpoint and request.endpoint.startswith('settings.') %}aria-current="page"{% endif %}>
+              {{ icon_settings() }} {{ t('nav.settings') }}
             </a>
           {% endif %}
         </nav>

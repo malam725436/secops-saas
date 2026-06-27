@@ -6,6 +6,7 @@
   "nav.invoices": "Turnos a Factura",
   "nav.frontline": "Portal de Primera Línea",
   "nav.logout": "Cerrar sesión",
+  "nav.settings": "Configuración",
 
   "login.title": "Iniciar sesión",
   "login.subtitle": "Introduce tus credenciales para acceder a SecOps Hub.",

@@ -10,6 +10,7 @@ from blueprints.guards import guards_bp
 from blueprints.invoices import invoices_bp
 from blueprints.payroll import payroll_bp
 from blueprints.roster import roster_bp
+from blueprints.settings import settings_bp
 from blueprints.sites import sites_bp
 from config import Config
 from extensions import csrf, db, login_manager, mail
@@ -112,6 +113,7 @@ def create_app():
     app.register_blueprint(invoices_bp)
     app.register_blueprint(payroll_bp)
     app.register_blueprint(roster_bp)
+    app.register_blueprint(settings_bp)
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -182,6 +184,36 @@ def create_app():
     @app.errorhandler(404)
     def not_found(_error):
         return render_template("errors/error.html", code=404, message="That page could not be found."), 404
+
+    @app.before_request
+    def refresh_app_settings_from_db():
+        from models import Setting
+
+        if request.endpoint in {None, "static"}:
+            return None
+
+        for key in [
+            "MAIL_SERVER",
+            "MAIL_PORT",
+            "MAIL_USE_TLS",
+            "MAIL_USERNAME",
+            "MAIL_PASSWORD",
+            "MAIL_DEFAULT_SENDER",
+            "INVOICE_EMAIL_RECIPIENT",
+        ]:
+            setting = Setting.query.filter_by(key=key).first()
+            if setting is not None and setting.value is not None:
+                if key == "MAIL_PORT":
+                    try:
+                        app.config[key] = int(setting.value)
+                    except ValueError:
+                        app.config[key] = setting.value
+                elif key == "MAIL_USE_TLS":
+                    app.config[key] = setting.value.lower() in {"1", "true", "yes", "on"}
+                else:
+                    app.config[key] = setting.value
+            elif key in app.config:
+                continue
 
     @app.context_processor
     def inject_now():

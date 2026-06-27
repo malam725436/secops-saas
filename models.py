@@ -433,6 +433,15 @@ class MaintenanceChecklistEntry(db.Model):
     completed_by = db.relationship("User")
 
 
+class Setting(db.Model):
+    __tablename__ = "settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(80), unique=True, nullable=False)
+    value = db.Column(db.Text, nullable=True)
+    description = db.Column(db.String(255), nullable=True)
+
+
 class Invoice(db.Model):
     __tablename__ = "invoices"
 
