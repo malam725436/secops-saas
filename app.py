@@ -94,10 +94,38 @@ def _executive_metrics(sites):
     }
 
 
+def _is_production():
+    """True when an explicit production environment or flag is set.
+
+    Honours APP_ENV/FLASK_ENV == "production" or a truthy PRODUCTION flag.
+    Defaults to development so local runs and tests are unaffected.
+    """
+    env = os.environ.get("APP_ENV", os.environ.get("FLASK_ENV", "")).strip().lower()
+    flag = os.environ.get("PRODUCTION", "").strip().lower()
+    return env == "production" or flag in {"1", "true", "yes", "on"}
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     app.permanent_session_lifetime = timedelta(minutes=SESSION_TIMEOUT_MINUTES)
+
+    if _is_production():
+        # Harden the runtime for production: never run the debugger, and only
+        # transmit the session cookie over HTTPS.
+        app.config.update(
+            DEBUG=False,
+            TESTING=False,
+            SESSION_COOKIE_SECURE=True,
+            SESSION_COOKIE_HTTPONLY=True,
+            SESSION_COOKIE_SAMESITE="Lax",
+            PREFERRED_URL_SCHEME="https",
+        )
+        if app.config.get("SECRET_KEY") in (None, "", "dev-secret-key-change-me"):
+            raise RuntimeError(
+                "Refusing to start in production with the default SECRET_KEY. "
+                "Set a strong, secret SECRET_KEY environment variable."
+            )
 
     db.init_app(app)
     csrf.init_app(app)
@@ -239,4 +267,19 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True)
+
+    production = _is_production()
+    debug = not production
+    host = os.environ.get("HOST", "0.0.0.0" if production else "127.0.0.1")
+    port = int(os.environ.get("PORT", "5000"))
+
+    print(f" * SecOps Hub starting in {'production' if production else 'development'} mode")
+    print(f" * Listening on http://{host}:{port}  (debug={debug})")
+    if production:
+        # The Werkzeug server is not built for production traffic. Disabling
+        # debug is the minimum; deploy behind a real WSGI server, e.g.:
+        #   pip install waitress && waitress-serve --host=0.0.0.0 --port=5000 "app:create_app"
+        print(" * WARNING: the built-in server is for development only.")
+        print(' *          Deploy behind a WSGI server, e.g. waitress-serve "app:create_app".')
+
+    app.run(host=host, port=port, debug=debug)

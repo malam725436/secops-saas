@@ -1,5 +1,6 @@
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from flask_mail import Message
 
 from extensions import db, mail
 from models import PAYROLL_ROLES, Setting
@@ -72,3 +73,41 @@ def overview():
 
     stored = {s.key: s.value for s in Setting.query.all()}
     return render_template("settings/overview.html", settings=stored)
+
+
+@settings_bp.route("/test-email", methods=["POST"])
+def test_email():
+    """Send a confirmation email to the default sender using the saved SMTP
+    settings, surfacing any live connection failure to the admin.
+
+    The app's before_request hook already syncs app.config and rebuilds the
+    Flask-Mail state from the database on every request, so the mail extension
+    here reflects the saved configuration without re-reading it manually.
+    """
+    recipient = (current_app.config.get("MAIL_DEFAULT_SENDER") or "").strip()
+    if not current_app.config.get("MAIL_SERVER"):
+        flash("Set a mail server before sending a test email.", "error")
+        return redirect(url_for("settings.overview"))
+    if not recipient:
+        flash("Set a default sender address before sending a test email.", "error")
+        return redirect(url_for("settings.overview"))
+
+    message = Message(
+        subject="SecOps Hub — test email",
+        recipients=[recipient],
+        sender=recipient,
+        body=(
+            "This is a test email from SecOps Hub.\n\n"
+            "If you received this message, your SMTP settings are working correctly."
+        ),
+    )
+
+    try:
+        mail.send(message)
+    except Exception as exc:  # noqa: BLE001 - report any SMTP/socket failure to the admin
+        current_app.logger.exception("Test email failed")
+        flash(f"Test email failed: {exc}", "error")
+        return redirect(url_for("settings.overview"))
+
+    flash(f"Test email sent to {recipient}.", "success")
+    return redirect(url_for("settings.overview"))

@@ -76,7 +76,15 @@
         <button type="submit" class="btn btn-primary">
           {{ icon_check_circle("icon icon--sm") }} Save settings
         </button>
+        <button type="submit" class="btn btn-secondary"
+                formaction="{{ url_for('settings.test_email') }}" formnovalidate>
+          Send test email
+        </button>
       </div>
+      <p class="helper-text" style="margin-top: var(--space-2);">
+        Sends a confirmation message to the default sender using the saved mail settings.
+        Save any changes first.
+      </p>
     </form>
   </section>
 {% endblock %}
