@@ -1,8 +1,10 @@
+import hashlib
+import hmac
 from datetime import datetime, UTC
 from io import BytesIO
 
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
-from flask_login import current_user, login_required
+from flask_login import current_user
 from flask_mail import Message
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -17,20 +19,30 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from extensions import db, mail
+from extensions import csrf, db, mail
 from models import FINANCE_ROLES, Invoice, Setting, Shift, Site
 
 invoices_bp = Blueprint("invoices", __name__, url_prefix="/invoices")
 
+# Payment webhooks are called by external gateways with no user session; they
+# are authenticated by signature instead of role and so bypass the guard below.
+_WEBHOOK_ENDPOINTS = {"invoices.stripe_webhook", "invoices.paypal_webhook"}
+
 
 @invoices_bp.before_request
-@login_required
 def _restrict_to_finance_roles():
     """Shift-to-Invoice: Owners and Ops Managers only.
 
     HR/Compliance and all frontline roles are explicitly excluded from
     corporate financial/billing data per GDPR data-isolation requirements.
+    Payment webhooks are exempt (unauthenticated, signature-verified callers).
     """
+    if request.endpoint in _WEBHOOK_ENDPOINTS:
+        return None
+    # Unauthenticated requests are already redirected by the app-wide session
+    # policy; this is defence-in-depth for the financial blueprint.
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login"))
     if current_user.role not in FINANCE_ROLES:
         abort(403)
 
@@ -460,3 +472,126 @@ def email_invoice(invoice_id):
     db.session.commit()
     flash(f"Invoice {invoice.invoice_number} emailed to {recipient}.", "success")
     return redirect(url_for("invoices.detail", invoice_id=invoice.id))
+
+
+# ===========================================================================
+# Payment gateway (Stripe / PayPal-style stubs)
+# ---------------------------------------------------------------------------
+# These endpoints model the shape of a real integration: an authenticated
+# route to open a checkout/payment session, and unauthenticated webhook
+# receivers that clear invoices when the gateway confirms payment. The actual
+# network/SDK calls are stubbed; swap _create_gateway_session() and the
+# signature check for the real provider SDK in production.
+# ===========================================================================
+
+# Gateway events that mean "money received" -> clear the invoice.
+_PAID_EVENT_TYPES = {
+    "checkout.session.completed",
+    "payment_intent.succeeded",
+    "invoice.paid",
+    "invoice.payment_succeeded",
+    "PAYMENT.CAPTURE.COMPLETED",  # PayPal
+}
+
+
+def _verify_webhook_signature(provider, payload, signature, secret):
+    """Verify a webhook signature (HMAC-SHA256 stub).
+
+    With a configured secret we compare an HMAC of the raw body. With no
+    secret we are in local/mock mode and accept the call so the flow can be
+    exercised without real gateway credentials -- except in production, where
+    a missing secret is a misconfiguration and the call is rejected.
+    """
+    if not secret:
+        if current_app.config.get("IS_PRODUCTION"):
+            current_app.logger.error("%s webhook secret missing in production; rejecting", provider)
+            return False
+        current_app.logger.warning("%s webhook signature skipped (mock mode, no secret)", provider)
+        return True
+    expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+    # Stripe sends "t=...,v1=<sig>"; accept either the raw hex or that form.
+    provided = signature.split("v1=")[-1] if "v1=" in signature else signature
+    return hmac.compare_digest(expected, provided.strip())
+
+
+def _create_gateway_session(invoice, provider):
+    """Return a mock checkout/payment-session payload for an invoice.
+
+    A real implementation would call e.g. stripe.checkout.Session.create(...)
+    or PayPal order creation with secret API keys from the environment and
+    return the gateway's hosted checkout URL.
+    """
+    return {
+        "provider": provider,
+        "session_id": f"mock_{provider}_{invoice.invoice_number}",
+        "invoice_id": invoice.id,
+        "invoice_number": invoice.invoice_number,
+        "amount": float(invoice.total_amount or 0),
+        "currency": "gbp",
+        "status": "created",
+        # In production this is the gateway-hosted checkout URL.
+        "checkout_url": url_for("invoices.detail", invoice_id=invoice.id, _external=True),
+        "metadata": {"invoice_number": invoice.invoice_number},
+    }
+
+
+def _clear_invoice_from_event(provider, event):
+    """Mark the referenced invoice paid when the event signals success."""
+    event_type = event.get("type") or event.get("event_type", "")
+    if event_type not in _PAID_EVENT_TYPES:
+        current_app.logger.info("%s webhook ignored (event=%s)", provider, event_type)
+        return {"received": True, "handled": False, "reason": "ignored_event_type"}
+
+    # Stripe nests the object under data.object; PayPal under resource.
+    obj = (event.get("data") or {}).get("object") or event.get("resource") or {}
+    invoice_number = (obj.get("metadata") or {}).get("invoice_number") or obj.get("invoice_number")
+    if not invoice_number:
+        current_app.logger.warning("%s webhook missing invoice_number reference", provider)
+        return {"received": True, "handled": False, "reason": "no_invoice_reference"}
+
+    invoice = Invoice.query.filter_by(invoice_number=invoice_number).first()
+    if invoice is None:
+        current_app.logger.warning("%s webhook for unknown invoice %s", provider, invoice_number)
+        return {"received": True, "handled": False, "reason": "unknown_invoice"}
+
+    if invoice.status != "paid":
+        invoice.status = "paid"
+        db.session.commit()
+        current_app.logger.info("Invoice %s cleared (paid) via %s webhook", invoice_number, provider)
+    return {"received": True, "handled": True, "invoice_number": invoice_number, "status": invoice.status}
+
+
+@invoices_bp.route("/<int:invoice_id>/pay", methods=["POST"])
+def create_payment_session(invoice_id):
+    """Open a checkout/payment session for an invoice (gateway stub)."""
+    invoice = db.session.get(Invoice, invoice_id)
+    if invoice is None:
+        abort(404)
+    provider = (request.form.get("provider") or request.args.get("provider") or "stripe").lower()
+    if provider not in {"stripe", "paypal"}:
+        abort(400, "Unsupported payment provider")
+    return jsonify(_create_gateway_session(invoice, provider))
+
+
+@invoices_bp.route("/webhooks/stripe", methods=["POST"])
+@csrf.exempt
+def stripe_webhook():
+    payload = request.get_data()
+    signature = request.headers.get("Stripe-Signature", "")
+    secret = current_app.config.get("STRIPE_WEBHOOK_SECRET")
+    if not _verify_webhook_signature("stripe", payload, signature, secret):
+        abort(400, "Invalid signature")
+    event = request.get_json(silent=True) or {}
+    return jsonify(_clear_invoice_from_event("stripe", event))
+
+
+@invoices_bp.route("/webhooks/paypal", methods=["POST"])
+@csrf.exempt
+def paypal_webhook():
+    payload = request.get_data()
+    signature = request.headers.get("Paypal-Transmission-Sig", "")
+    secret = current_app.config.get("PAYPAL_WEBHOOK_SECRET")
+    if not _verify_webhook_signature("paypal", payload, signature, secret):
+        abort(400, "Invalid signature")
+    event = request.get_json(silent=True) or {}
+    return jsonify(_clear_invoice_from_event("paypal", event))

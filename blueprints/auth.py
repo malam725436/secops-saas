@@ -69,6 +69,11 @@ def mfa():
 
 
 def _complete_login(user):
+    # Session-fixation defence: discard any pre-authentication session state
+    # (e.g. an attacker-planted session) so a fresh, authenticated session is
+    # issued the moment privileges are granted. This keeps low-privilege or
+    # anonymous session data from carrying into an owner/admin session.
+    session.clear()
     login_user(user)
     user.last_login_at = datetime.now(timezone.utc)
     db.session.commit()

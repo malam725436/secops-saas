@@ -5,18 +5,14 @@ from datetime import datetime, timedelta, UTC
 from flask import Blueprint, Response, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from authz import roles_required
 from extensions import db
 from models import PAYROLL_ROLES, Guard, PayrollPayout, Shift
 
 payroll_bp = Blueprint("payroll", __name__, url_prefix="/payroll")
 
-
-@payroll_bp.before_request
-@login_required
-def _restrict_to_payroll_roles():
-    """Payroll: Owners and HR/Compliance only."""
-    if current_user.role not in PAYROLL_ROLES:
-        abort(403)
+# Payroll: Owners and HR/Compliance only.
+payroll_bp.before_request(roles_required(*PAYROLL_ROLES))
 
 
 def _parse_date(value):

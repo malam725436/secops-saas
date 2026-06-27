@@ -2,6 +2,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from flask_login import current_user, login_required
 from flask_mail import Message
 
+from authz import roles_required
 from extensions import db, mail
 from models import PAYROLL_ROLES, Setting
 
@@ -18,11 +19,8 @@ _MAIL_KEYS = [
 ]
 
 
-@settings_bp.before_request
-@login_required
-def _restrict_to_admin_roles():
-    if current_user.role not in PAYROLL_ROLES:
-        abort(403)
+# System settings: Owners and HR/Compliance only.
+settings_bp.before_request(roles_required(*PAYROLL_ROLES))
 
 
 def _coerce(key, raw_value):

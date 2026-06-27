@@ -5,6 +5,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
+from authz import roles_required
 from extensions import db
 from models import HR_ROLES, SIA_LICENSE_TYPES, Guard
 
@@ -13,16 +14,10 @@ guards_bp = Blueprint("guards", __name__, url_prefix="/guards")
 ALLOWED_UPLOAD_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "pdf"}
 
 
-@guards_bp.before_request
-@login_required
-def _restrict_to_hr_roles():
-    """Guard Profile Vault: HR/Compliance, Ops Managers, and Owners only.
-
-    GDPR data isolation - frontline staff (guards, cleaners, receptionists)
-    must never be able to query other employees' vetting/compliance files.
-    """
-    if current_user.role not in HR_ROLES:
-        abort(403)
+# Guard Profile Vault: HR/Compliance, Ops Managers, and Owners only.
+# GDPR data isolation - frontline staff (guards, cleaners, receptionists) must
+# never be able to query other employees' vetting/compliance files.
+guards_bp.before_request(roles_required(*HR_ROLES))
 
 
 def _parse_date(value):

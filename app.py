@@ -13,7 +13,7 @@ from blueprints.roster import roster_bp
 from blueprints.settings import settings_bp
 from blueprints.sites import sites_bp
 from config import Config
-from extensions import csrf, db, login_manager, mail
+from extensions import csrf, db, login_manager, mail, migrate
 from i18n import SUPPORTED_LANGUAGES, translate
 from models import AuditLog, FINANCE_ROLES, SESSION_TIMEOUT_MINUTES, Guard, Invoice, Shift, Site, User
 
@@ -160,10 +160,15 @@ def create_app():
             app.config["MAIL_SUPPRESS_SEND"] = env_suppress.strip().lower() in {"1", "true", "yes", "on"}
         _register_mock_mail_logger(app)
 
+    # Expose the resolved environment for blueprints (e.g. payment webhooks
+    # enforce signature secrets only in production).
+    app.config["IS_PRODUCTION"] = _is_production()
+
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
+    migrate.init_app(app, db)
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
@@ -186,7 +191,16 @@ def create_app():
     # ------------------------------------------------------------------
     @app.before_request
     def enforce_session_policy():
-        if request.endpoint in (None, "static", "auth.login", "auth.mfa"):
+        # Payment webhooks are called by external gateways with no session;
+        # they authenticate via signature, so they bypass the login redirect.
+        if request.endpoint in (
+            None,
+            "static",
+            "auth.login",
+            "auth.mfa",
+            "invoices.stripe_webhook",
+            "invoices.paypal_webhook",
+        ):
             return None
 
         if not current_user.is_authenticated:
@@ -292,8 +306,13 @@ def create_app():
             "supported_languages": SUPPORTED_LANGUAGES,
         }
 
-    with app.app_context():
-        db.create_all()
+    # In development we auto-create tables for convenience. In production the
+    # schema is owned by Alembic/Flask-Migrate ("flask db upgrade"), so we do
+    # not call create_all() there. Set SKIP_DB_CREATE=1 when generating
+    # migrations against an empty database.
+    if not _is_production() and not os.environ.get("SKIP_DB_CREATE"):
+        with app.app_context():
+            db.create_all()
 
     return app
 

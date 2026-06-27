@@ -3,18 +3,14 @@ from datetime import datetime, UTC
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from authz import roles_required
 from extensions import db
 from models import SITE_MANAGEMENT_ROLES, Guard, Shift, Site
 
 sites_bp = Blueprint("sites", __name__, url_prefix="/sites")
 
-
-@sites_bp.before_request
-@login_required
-def _restrict_to_site_management_roles():
-    """Your Sites hub: Owners, Ops Managers, and Supervisors only."""
-    if current_user.role not in SITE_MANAGEMENT_ROLES:
-        abort(403)
+# Your Sites hub: Owners, Ops Managers, and Supervisors only.
+sites_bp.before_request(roles_required(*SITE_MANAGEMENT_ROLES))
 
 
 def _parse_date(value):
