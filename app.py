@@ -12,7 +12,7 @@ from blueprints.payroll import payroll_bp
 from blueprints.roster import roster_bp
 from blueprints.sites import sites_bp
 from config import Config
-from extensions import csrf, db, login_manager
+from extensions import csrf, db, login_manager, mail
 from i18n import SUPPORTED_LANGUAGES, translate
 from models import AuditLog, FINANCE_ROLES, SESSION_TIMEOUT_MINUTES, Guard, Invoice, Shift, Site, User
 
@@ -101,6 +101,7 @@ def create_app():
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
+    mail.init_app(app)
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 

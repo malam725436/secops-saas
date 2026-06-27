@@ -1,8 +1,9 @@
 from datetime import datetime, UTC
 from io import BytesIO
 
-from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
+from flask_mail import Message
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -16,7 +17,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from extensions import db
+from extensions import db, mail
 from models import FINANCE_ROLES, Invoice, Shift, Site
 
 invoices_bp = Blueprint("invoices", __name__, url_prefix="/invoices")
@@ -368,6 +369,12 @@ def _build_invoice_pdf(invoice):
     return buf
 
 
+def _invoice_pdf_attachment(invoice):
+    pdf_buf = _build_invoice_pdf(invoice)
+    pdf_buf.seek(0)
+    return pdf_buf, f"INV-{invoice.invoice_number}.pdf"
+
+
 @invoices_bp.route("/<int:invoice_id>/download")
 @invoices_bp.route("/<int:invoice_id>/download/")
 def download(invoice_id):
@@ -376,11 +383,8 @@ def download(invoice_id):
         flash("The requested invoice could not be found.", "error")
         return redirect(url_for("invoices.list_invoices"))
 
-    pdf_buf = _build_invoice_pdf(invoice)
-    filename = f"INV-{invoice.invoice_number}.pdf"
-    pdf_buf.seek(0)
+    pdf_buf, filename = _invoice_pdf_attachment(invoice)
 
-    # Use send_file with explicit headers to ensure browsers treat it as a PDF attachment.
     return send_file(
         pdf_buf,
         mimetype="application/pdf",
@@ -388,3 +392,34 @@ def download(invoice_id):
         download_name=filename,
         conditional=False,
     )
+
+
+@invoices_bp.route("/<int:invoice_id>/email", methods=["POST"])
+def email_invoice(invoice_id):
+    invoice = Invoice.query.get(invoice_id)
+    if invoice is None:
+        flash("The requested invoice could not be found.", "error")
+        return redirect(url_for("invoices.list_invoices"))
+
+    recipient = request.form.get("recipient") or current_app.config.get("INVOICE_EMAIL_RECIPIENT")
+    if not recipient:
+        flash("No invoice email recipient configured.", "error")
+        return redirect(url_for("invoices.detail", invoice_id=invoice.id))
+
+    pdf_buf, filename = _invoice_pdf_attachment(invoice)
+    msg = Message(
+        subject=f"Invoice {invoice.invoice_number} from {invoice.site.name}",
+        recipients=[recipient],
+        body=(
+            f"Hello,\n\n"
+            f"Please find attached invoice {invoice.invoice_number} for {invoice.site.name}.\n"
+            f"Total amount due: £{float(invoice.total_amount):.2f}\n"
+        ),
+    )
+    msg.attach(filename, "application/pdf", pdf_buf.getvalue())
+    mail.send(msg)
+
+    invoice.status = "sent"
+    db.session.commit()
+    flash(f"Invoice {invoice.invoice_number} emailed to {recipient}.", "success")
+    return redirect(url_for("invoices.detail", invoice_id=invoice.id))

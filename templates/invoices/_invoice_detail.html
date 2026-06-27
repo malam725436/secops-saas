@@ -17,7 +17,12 @@
       {% if not print_mode %}
         <div class="invoice-hero__actions">
           <a class="btn btn-secondary" href="{{ url_for('invoices.print_preview', invoice_id=invoice.id) }}" target="_blank" rel="noopener">Print preview</a>
-          <a class="btn btn-primary" href="{{ url_for('invoices.download', invoice_id=invoice.id) }}">Download PDF</a>
+          <a class="btn btn-secondary" href="{{ url_for('invoices.download', invoice_id=invoice.id) }}">Download PDF</a>
+          <form method="post" action="{{ url_for('invoices.email_invoice', invoice_id=invoice.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="recipient" value="{{ config['INVOICE_EMAIL_RECIPIENT'] }}">
+            <button type="submit" class="btn btn-primary">Email Invoice</button>
+          </form>
         </div>
       {% endif %}
     </div>
