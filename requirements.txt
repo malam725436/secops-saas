@@ -7,4 +7,6 @@ Flask-Migrate==4.1.0
 python-dotenv==1.2.2
 pyotp==2.9.0
 reportlab==4.5.1
+segno==1.6.6
+stripe==15.3.0
 waitress==3.0.2

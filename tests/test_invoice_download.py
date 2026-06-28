@@ -1,10 +1,30 @@
 from datetime import date
 
+import pyotp
 import pytest
 
 from app import create_app
 from extensions import db
 from models import Invoice, Site, User
+
+# Owners are MFA-required (FINANCE_ROLES); enroll a fixed TOTP secret so the
+# tests can complete the challenge deterministically.
+OWNER_MFA_SECRET = "JBSWY3DPEHPK3PXP"
+
+
+def _login_owner(client):
+    """Log in the MFA-required owner: password step then TOTP step."""
+    resp = client.post(
+        "/login",
+        data={"email": "owner@secops.example", "password": "Passw0rd!"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/auth/mfa")
+    code = pyotp.TOTP(OWNER_MFA_SECRET).now()
+    mfa_resp = client.post("/auth/mfa", data={"code": code}, follow_redirects=False)
+    assert mfa_resp.status_code == 302  # MFA passed -> authenticated
+    return mfa_resp
 
 
 @pytest.fixture()
@@ -25,6 +45,8 @@ def client():
             email="owner@secops.example",
             role="owner",
             is_active_account=True,
+            mfa_secret=OWNER_MFA_SECRET,
+            mfa_enabled=True,
         )
         user.set_password("Passw0rd!")
         db.session.add(user)
@@ -45,12 +67,7 @@ def client():
 
 
 def test_invoice_download_returns_pdf(client):
-    login_resp = client.post(
-        "/login",
-        data={"email": "owner@secops.example", "password": "Passw0rd!"},
-        follow_redirects=False,
-    )
-    assert login_resp.status_code == 302
+    _login_owner(client)
 
     resp = client.get("/invoices/1/download", follow_redirects=False)
     assert resp.status_code == 200
@@ -59,12 +76,7 @@ def test_invoice_download_returns_pdf(client):
 
 
 def test_invoice_download_redirects_when_invoice_is_missing(client):
-    login_resp = client.post(
-        "/login",
-        data={"email": "owner@secops.example", "password": "Passw0rd!"},
-        follow_redirects=False,
-    )
-    assert login_resp.status_code == 302
+    _login_owner(client)
 
     resp = client.get("/invoices/999999/download", follow_redirects=False)
     assert resp.status_code == 302

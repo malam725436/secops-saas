@@ -198,6 +198,7 @@ def create_app():
             "static",
             "auth.login",
             "auth.mfa",
+            "auth.mfa_enroll",
             "invoices.stripe_webhook",
             "invoices.paypal_webhook",
         ):

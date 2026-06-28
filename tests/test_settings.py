@@ -17,10 +17,13 @@ def test_settings_form_persists_mail_config_and_refreshes_app_config():
         db.drop_all()
         db.create_all()
 
+        # HR/Compliance has settings access (PAYROLL_ROLES) and is not in
+        # MFA_REQUIRED_ROLES, so a password-only login is correct here. The MFA
+        # flow itself is covered in test_auth_mfa.py.
         user = User(
-            name="Owner",
-            email="owner@example.com",
-            role="owner",
+            name="Compliance Lead",
+            email="hr@example.com",
+            role="hr_compliance",
             is_active_account=True,
         )
         user.set_password("Password1!")
@@ -30,7 +33,7 @@ def test_settings_form_persists_mail_config_and_refreshes_app_config():
     with app.test_client() as client:
         login_resp = client.post(
             "/login",
-            data={"email": "owner@example.com", "password": "Password1!"},
+            data={"email": "hr@example.com", "password": "Password1!"},
             follow_redirects=False,
         )
         assert login_resp.status_code == 302

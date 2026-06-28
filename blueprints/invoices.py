@@ -3,6 +3,8 @@ import hmac
 from datetime import datetime, UTC
 from io import BytesIO
 
+import stripe
+
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user
 from flask_mail import Message
@@ -475,13 +477,12 @@ def email_invoice(invoice_id):
 
 
 # ===========================================================================
-# Payment gateway (Stripe / PayPal-style stubs)
+# Payment gateway (Stripe live, PayPal stub)
 # ---------------------------------------------------------------------------
-# These endpoints model the shape of a real integration: an authenticated
-# route to open a checkout/payment session, and unauthenticated webhook
-# receivers that clear invoices when the gateway confirms payment. The actual
-# network/SDK calls are stubbed; swap _create_gateway_session() and the
-# signature check for the real provider SDK in production.
+# An authenticated route opens a checkout session, and unauthenticated webhook
+# receivers clear invoices when the gateway confirms payment. Stripe is wired
+# to the real SDK (env-sourced keys, official signature verification); PayPal
+# remains a structural stub pending live SDK wiring.
 # ===========================================================================
 
 # Gateway events that mean "money received" -> clear the invoice.
@@ -515,22 +516,76 @@ def _verify_webhook_signature(provider, payload, signature, secret):
 
 
 def _create_gateway_session(invoice, provider):
-    """Return a mock checkout/payment-session payload for an invoice.
-
-    A real implementation would call e.g. stripe.checkout.Session.create(...)
-    or PayPal order creation with secret API keys from the environment and
-    return the gateway's hosted checkout URL.
-    """
+    """Open a checkout/payment session for an invoice via the given provider."""
+    if provider == "stripe":
+        return _create_stripe_checkout_session(invoice)
+    # PayPal remains a structural stub pending live SDK wiring.
     return {
-        "provider": provider,
-        "session_id": f"mock_{provider}_{invoice.invoice_number}",
+        "provider": "paypal",
+        "session_id": f"mock_paypal_{invoice.invoice_number}",
         "invoice_id": invoice.id,
         "invoice_number": invoice.invoice_number,
         "amount": float(invoice.total_amount or 0),
         "currency": "gbp",
         "status": "created",
-        # In production this is the gateway-hosted checkout URL.
         "checkout_url": url_for("invoices.detail", invoice_id=invoice.id, _external=True),
+        "metadata": {"invoice_number": invoice.invoice_number},
+    }
+
+
+def _create_stripe_checkout_session(invoice):
+    """Create a real Stripe Checkout Session for the invoice.
+
+    Uses the v1 StripeClient with the env-sourced STRIPE_SECRET_KEY, attaches
+    the invoice metadata, prices in GBP, and derives the line item from the
+    target Invoice record.
+    """
+    api_key = current_app.config.get("STRIPE_SECRET_KEY")
+    if not api_key:
+        abort(503, "Stripe is not configured (STRIPE_SECRET_KEY missing)")
+
+    client = stripe.StripeClient(api_key)
+    amount_pence = int(round(float(invoice.total_amount or 0) * 100))
+    return_url = url_for("invoices.detail", invoice_id=invoice.id, _external=True)
+
+    try:
+        session = client.v1.checkout.sessions.create(
+            params={
+                "mode": "payment",
+                "success_url": return_url,
+                "cancel_url": return_url,
+                "client_reference_id": invoice.invoice_number,
+                "metadata": {
+                    "invoice_number": invoice.invoice_number,
+                    "invoice_id": str(invoice.id),
+                },
+                "line_items": [
+                    {
+                        "quantity": 1,
+                        "price_data": {
+                            "currency": "gbp",
+                            "unit_amount": amount_pence,
+                            "product_data": {
+                                "name": f"Invoice {invoice.invoice_number} - {invoice.site.name}",
+                            },
+                        },
+                    }
+                ],
+            }
+        )
+    except stripe.StripeError as exc:
+        current_app.logger.exception("Stripe checkout session creation failed")
+        abort(502, f"Stripe error: {getattr(exc, 'user_message', None) or exc}")
+
+    return {
+        "provider": "stripe",
+        "session_id": session.id,
+        "invoice_id": invoice.id,
+        "invoice_number": invoice.invoice_number,
+        "amount": float(invoice.total_amount or 0),
+        "currency": "gbp",
+        "status": session.status or "open",
+        "checkout_url": session.url,
         "metadata": {"invoice_number": invoice.invoice_number},
     }
 
@@ -577,10 +632,29 @@ def create_payment_session(invoice_id):
 @csrf.exempt
 def stripe_webhook():
     payload = request.get_data()
-    signature = request.headers.get("Stripe-Signature", "")
+    sig_header = request.headers.get("Stripe-Signature", "")
     secret = current_app.config.get("STRIPE_WEBHOOK_SECRET")
-    if not _verify_webhook_signature("stripe", payload, signature, secret):
-        abort(400, "Invalid signature")
+
+    if secret:
+        # Official Stripe verification: validates the signed payload against the
+        # Stripe-Signature header and the env-sourced webhook signing secret.
+        # We use construct_event purely to authenticate the request; the parsed
+        # JSON body below is what we act on.
+        try:
+            stripe.Webhook.construct_event(payload, sig_header, secret)
+        except ValueError:
+            current_app.logger.warning("Stripe webhook: malformed payload")
+            abort(400, "Invalid payload")
+        except stripe.SignatureVerificationError:
+            current_app.logger.warning("Stripe webhook: signature verification failed")
+            abort(400, "Invalid signature")
+    elif current_app.config.get("IS_PRODUCTION"):
+        current_app.logger.error("Stripe webhook secret missing in production; rejecting")
+        abort(400, "Webhook secret not configured")
+    else:
+        # Local/dev mock: no secret configured, accept unsigned for testing.
+        current_app.logger.warning("Stripe webhook signature skipped (mock mode, no secret)")
+
     event = request.get_json(silent=True) or {}
     return jsonify(_clear_invoice_from_event("stripe", event))
 
